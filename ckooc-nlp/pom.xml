@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>CkoocNLP</artifactId>
+        <groupId>com.ickooc</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>ckooc-nlp</artifactId>
+
+    <repositories>
+        <repository>
+            <id>mvn-repo</id>
+            <url>http://maven.nlpcn.org/</url>
+        </repository>
+    </repositories>
+
+    <properties>
+        <hanlp.version>portable-1.2.7</hanlp.version>
+        <nlpcn.version>0.2</nlpcn.version>
+        <fnlp.version>2.1</fnlp.version>
+        <standfordnlp.version>3.5.2</standfordnlp.version>
+        <clearnlp.version>3.2.0</clearnlp.version>
+        <ansj.version>2.0.8</ansj.version>
+        <jieba.version>1.0.2</jieba.version>
+    </properties>
+
+    <dependencies>
+        <!-- Hanlp依赖包 -->
+        <dependency>
+            <groupId>com.hankcs</groupId>
+            <artifactId>hanlp</artifactId>
+            <version>${hanlp.version}</version>
+        </dependency>
+
+        <!-- NLPChina依赖包 -->
+        <dependency>
+            <groupId>org.nlpcn</groupId>
+            <artifactId>nlp-lang</artifactId>
+            <version>${nlpcn.version}</version>
+        </dependency>
+
+        <!-- 复旦NLP依赖包 -->
+        <dependency>
+            <groupId>org.fnlp</groupId>
+            <artifactId>fnlp-core</artifactId>
+            <version>${fnlp.version}</version>
+        </dependency>
+
+        <!-- Standford NLP依赖包 -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${standfordnlp.version}</version>
+        </dependency>
+
+        <!-- clearnlp依赖包 -->
+        <dependency>
+            <groupId>edu.emory.clir</groupId>
+            <artifactId>clearnlp</artifactId>
+            <version>${clearnlp.version}</version>
+        </dependency>
+
+        <!-- Ansj分词器 -->
+        <dependency>
+            <groupId>org.ansj</groupId>
+            <artifactId>ansj_seg</artifactId>
+            <version>${ansj.version}</version>
+        </dependency>
+
+        <!-- 结巴分词器 -->
+        <dependency>
+            <groupId>com.huaban</groupId>
+            <artifactId>jieba-analysis</artifactId>
+            <version>${jieba.version}</version>
+        </dependency>
+    </dependencies>
+</project>
