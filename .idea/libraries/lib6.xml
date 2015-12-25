@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="lib6">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../NLPIR/NLPIR SDK/KeyExtract/projects/KeyExtract_java/lib/jna-4.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../NLPIR/NLPIR SDK/KeyExtract/projects/KeyExtract_java/lib/microduo-commons-1.2.3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../NLPIR/NLPIR SDK/KeyExtract/projects/KeyExtract_java/lib/log4j-1.2.8.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../NLPIR/NLPIR SDK/KeyExtract/projects/KeyExtract_java/lib/dom4j-1.6.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

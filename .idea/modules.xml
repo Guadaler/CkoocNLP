@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/CkoocNLP.iml" filepath="$PROJECT_DIR$/CkoocNLP.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ckooc-ml/ckooc-ml.iml" filepath="$PROJECT_DIR$/ckooc-ml/ckooc-ml.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ckooc-nlp/ckooc-nlp.iml" filepath="$PROJECT_DIR$/ckooc-nlp/ckooc-nlp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../HanLP/hanlp.iml" filepath="$PROJECT_DIR$/../HanLP/hanlp.iml" />
+    </modules>
+  </component>
+</project>

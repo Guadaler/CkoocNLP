@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="jna-4.0.01">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../NLPIR/NLPIR SDK/JZSearchclient/sample/Java/lib/jna-4.0.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

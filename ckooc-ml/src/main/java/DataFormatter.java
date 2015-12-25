@@ -36,7 +36,8 @@ public class DataFormatter {
         String line;
         DataFormatter df = new DataFormatter();
         while ((line = br.readLine()) != null) {
-            String text = df.FormatDocOfJGLLDA(line, classMap);
+//            String text = df.FormatDocOfJGLLDA(line, classMap);
+            String text = df.FormatDocOfSparkLDA(line, classMap);
             bw.write(text + "\n");
         }
 
@@ -60,5 +61,22 @@ public class DataFormatter {
             temp += topic + 1 + ":" + weight + " ";
         }
         return classMap.get(classify) + " " + temp.substring(0, temp.length() - 1);
+    }
+
+    public String FormatDocOfSparkLDA(String text, HashMap<String, Integer> classMap) {
+        String[] tokens = text.split(" ");
+        String classify = tokens[0];
+
+        String temp = classMap.get(classify) + " ";
+        int topic;
+        Double weight;
+        for (int i = 1; i < tokens.length; i++) {
+            String token = tokens[i];
+            topic = Integer.parseInt(token.split("\\:")[0]);
+            weight = Double.parseDouble(token.split("\\:")[1]);
+
+            temp += topic + 1 + ":" + weight + " ";
+        }
+        return temp.substring(0, temp.length() - 1);
     }
 }

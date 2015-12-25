@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/../Fnlp" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Fnlp/fnlp-app" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Fnlp/fnlp-core" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Fnlp/fnlp-demo" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Fnlp/fnlp-dev" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../Fnlp/fnlp-train" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../HanLP" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/lib/args4j-2.0.6.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/lib/trove-3.0.3.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/Dictionary.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/Document.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/Estimator.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/Inferencer.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/LDA.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/LDACmdOption.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/LDADataset.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/Model.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/Pair.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-nlp" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/ckooc-nlp/models/seg.m" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/../nlpChina" charset="UTF-8" />
+    <file url="PROJECT" charset="UTF-8" />
+  </component>
+</project>

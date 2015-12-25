@@ -26,9 +26,23 @@
         <clearnlp.version>3.2.0</clearnlp.version>
         <ansj.version>2.0.8</ansj.version>
         <jieba.version>1.0.2</jieba.version>
+        <scala.binary.version>2.10</scala.binary.version>
+        <spark.version>1.5.2</spark.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mllib_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
         <!-- Hanlp依赖包 -->
         <dependency>
             <groupId>com.hankcs</groupId>
@@ -76,6 +90,13 @@
             <groupId>com.huaban</groupId>
             <artifactId>jieba-analysis</artifactId>
             <version>${jieba.version}</version>
+        </dependency>
+
+        <!-- scalaNLP -->
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze_2.10</artifactId> <!-- or 2.11 -->
+            <version>0.10</version>
         </dependency>
     </dependencies>
 </project>
