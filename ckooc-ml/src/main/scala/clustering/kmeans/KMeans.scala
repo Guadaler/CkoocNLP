@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-// scalastyle:off println
 package clustering.kmeans
 
+import feature.TFIDF
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.mllib.clustering.KMeansModel
-import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext, mllib}
 
@@ -46,13 +46,8 @@ object KMeans {
    * @param initializationMode  初始化模型（Parallel或者Random）
    * @return  KMeans模型
    */
-  def train(input: RDD[String], k: Int, numIterations: Int, runs: Int = 1, initializationMode: InitializationMode = Parallel): KMeansModel = {
-    Logger.getRootLogger.setLevel(Level.WARN)
-    val examples = input.map { line =>
-      Vectors.dense(line.split(' ').map(_.toDouble))
-    }.cache()
-
-    val numExamples = examples.count()
+  def train(input: RDD[Vector], k: Int, numIterations: Int, runs: Int = 1, initializationMode: InitializationMode = Parallel): KMeansModel = {
+    val numExamples = input.count()
 
     println(s"实例个数： $numExamples.")
 
@@ -66,7 +61,7 @@ object KMeans {
       .setK(k)
       .setMaxIterations(numIterations)
       .setRuns(runs)
-      .run(examples)
+      .run(input)
   }
 
   /**
@@ -79,35 +74,36 @@ object KMeans {
       Vectors.dense(line.split(' ').map(_.toDouble))
     }.cache()
 
-    val cost = model.computeCost(examples)    //每条数据与最近聚类中心的方差
-
-    println("总代价(每条数据与最近聚类中心的方差)： $cost.")
-
     val centers = model.clusterCenters
 
     println("聚类中心：")
     centers.foreach(point => {
-      println(point)
+      println(point.toSparse)
     })
 
-    println("\n聚类详情：")
+    /*println("\n聚类详情：")
     val result = examples.map(line => {
       val cluster = model.predict(line)
       (cluster, line)
     }).sortByKey()
-    result.foreach(x => println(x._1 + "| " + x._2.toArray.mkString("\t")))
+    result.foreach(x => println(x._1 + "| " + x._2.toArray.mkString("\t")))*/
   }
 
 
   def main(args: Array[String]) {
+    Logger.getRootLogger.setLevel(Level.WARN)
+
     val conf = new SparkConf().setAppName("KMeans").setMaster("local")
     val sc = new SparkContext(conf)
 
-    val inputPath = "ckooc-nlp/data/clustering/kmeans_standard_data.txt"
+    val inputPath = "ckooc-ml/data/clustering/kmeans_standard_data.txt"
     val k = 15
     val numIterations = 100
     val input = sc.textFile(inputPath)
-    val model = KMeans.train(input, k, numIterations)
+
+    val tfidf = TFIDF.train(sc, input)
+
+    val model = KMeans.train(tfidf, k, numIterations)
     KMeans.print(input, model)
   }
 }

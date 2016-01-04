@@ -1,7 +1,7 @@
 package utils
 
 import org.apache.spark.ml.feature.{CountVectorizer, CountVectorizerModel, RegexTokenizer, StopWordsRemover}
-import org.apache.spark.mllib.linalg.Vector
+import org.apache.spark.mllib.linalg.{Vectors, SparseVector, Vector}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row}
 
@@ -46,3 +46,4 @@ class MLUtils {
     (cvModel, countVectors)
   }
 }
+
