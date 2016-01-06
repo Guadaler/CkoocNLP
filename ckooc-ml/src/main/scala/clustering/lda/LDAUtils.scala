@@ -77,6 +77,7 @@ class LDAUtils(conf: SparkConf, sc: SparkContext, sqlContext: SQLContext) {
     val lda = new LDA()
       .setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf)))
       .setK(numTopics)
+      .setOptimizer("em")
       .setMaxIterations(maxIterations)
       .setDocConcentration(-1) // use default symmetric document-topic prior
       .setTopicConcentration(-1) // use default symmetric topic-word prior
@@ -107,7 +108,8 @@ class LDAUtils(conf: SparkConf, sc: SparkContext, sqlContext: SQLContext) {
     ldaModel match {
       case localModel: LocalLDAModel =>
         predicted = localModel.topicDistributions(countVectors)
-
+      case distModel: DistributedLDAModel =>
+        predicted = distModel.toLocal.topicDistributions(countVectors)
       case _ =>
     }
     predicted

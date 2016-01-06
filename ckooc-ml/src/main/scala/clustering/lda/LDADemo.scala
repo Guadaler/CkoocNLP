@@ -9,7 +9,9 @@ import org.apache.spark.{SparkConf, SparkContext}
 import utils.MLUtils
 
 /**
- * Created by yhao on 2015/11/24.
+ * LDA模型训练及预测。
+ * <p>输入参数：主题数（int）、迭代次数（int）、数据路径（HDFS）
+ * <p>Created by yhao on 2015/11/24.
  */
 object LDADemo {
   def main(args: Array[String]) {
