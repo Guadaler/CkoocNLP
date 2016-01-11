@@ -1,4 +1,4 @@
-package datatypes
+package DataTypes
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkContext, SparkConf}
@@ -25,6 +25,9 @@ object LabeledPointDemo extends App {
 
   //加载labeled point
   val example = MLUtils.loadLabeledPoints(sc, "ckooc-ml/data/datatype/sample_libsvm_data.txt")
+
+  println()
+
 
   sc.stop()
 }
