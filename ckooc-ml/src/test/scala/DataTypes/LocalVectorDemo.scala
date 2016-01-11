@@ -1,4 +1,4 @@
-package DataTypes
+package datatypes
 
 import org.apache.spark.mllib.linalg.{Vector, Vectors}
 
