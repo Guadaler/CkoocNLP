@@ -26,8 +26,5 @@ object LabeledPointDemo extends App {
   //加载labeled point
   val example = MLUtils.loadLabeledPoints(sc, "ckooc-ml/data/datatype/sample_libsvm_data.txt")
 
-  println()
-
-
   sc.stop()
 }
