@@ -3,6 +3,7 @@ package DataTypes
 import org.apache.spark.mllib.linalg.Matrices
 
 /**
+ * 本地矩阵示例
  * Created by yhao on 2016/1/4.
  */
 object LocalMatrixDemo extends App {
