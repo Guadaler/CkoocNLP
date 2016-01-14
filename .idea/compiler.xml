@@ -85,10 +85,18 @@
         <processorPath useClasspath="true" />
         <module name="ckooc-nlp" />
       </profile>
+      <profile default="false" name="Annotation profile for ckooc-preprocess" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="ckooc-preprocess" />
+      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="ckooc-ml" target="1.8" />
       <module name="ckooc-nlp" target="1.8" />
+      <module name="ckooc-preprocess" target="1.8" />
       <module name="CkoocNLP" target="1.8" />
       <module name="hanlp" target="1.8" />
       <module name="nlp-lang" target="1.7" />

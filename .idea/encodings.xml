@@ -23,6 +23,7 @@
     <file url="file://$PROJECT_DIR$/ckooc-ml/src/main/java/clustering/lda/jgibblda/Pair.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/ckooc-nlp" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/ckooc-nlp/models/seg.m" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/ckooc-preprocess" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/../nlpChina" charset="UTF-8" />
     <file url="PROJECT" charset="UTF-8" />
   </component>

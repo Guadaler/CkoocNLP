@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="ansj_seg-3.0-systex">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/ckooc-ml/lib/ansj_seg-3.0-systex.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

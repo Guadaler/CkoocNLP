@@ -1,209 +1,69 @@
 package clustering.lda
 
-import java.io.{BufferedWriter, File, FileOutputStream, OutputStreamWriter}
-
-import org.apache.spark.ml.feature.CountVectorizerModel
-import org.apache.spark.mllib.clustering._
+import org.apache.spark.SparkContext
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature.{CountVectorizerModel, CountVectorizer, StopWordsRemover, RegexTokenizer}
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Row, SQLContext}
-import org.apache.spark.{SparkConf, SparkContext}
-import utils.MLUtils
+import org.apache.spark.sql.{Row, SQLContext}
 
-import scala.collection.mutable
+/**
+  * Created by yhao on 2016/1/14.
+  */
+class LDAUtils {
 
-class LDAUtils(conf: SparkConf, sc: SparkContext, sqlContext: SQLContext) {
-
-  /**
-   * 生成UUID和ID的map
-   * @param path  输入数据
-   * @return  包含uuid的hashmap
-   */
-  def generateUUIDMap(path: Seq[String]): mutable.HashMap[Long, String] = {
-    val files = sc.textFile(path.mkString(",")).collect()
-    val uuidMap = new mutable.HashMap[Long, String]
-    var id = 0L
-    for (i <- 0 until files.length) {
-      if (files(i).split("\\|")(0).split("\\_").length == 2) {
-        id = files(i).split("\\|")(0).split("\\_")(1).toLong
-        uuidMap.put(id, files(i).split("\\|")(0))
-      } else {
-        println("uuid格式错误！")
-      }
-    }
-    uuidMap
-  }
-
-  /**
-   * 预处理操作
-   * @param input 输入数据
-   * @param stopwordFile  停用词文件
-   * @return  向量模型和词组成的向量
-   */
-  def preprocess(input: Seq[String], stopwordFile: String): DataFrame = {
-    val mlUtils = new MLUtils
-    val rawTextRDD = sc.textFile(input.mkString(","))
-
-    import sqlContext.implicits._
-
-    val docDF = rawTextRDD.filter(doc => doc.length > 38).map(doc => {
-      val docId = doc.split("\\|")(0).split("\\_")(1).toLong
-      val text = doc.split("\\|")(1)
-      (text, docId)
-    }).toDF("text", "docId")
-
-    val tokens = mlUtils.tokenlizeLines(docDF)
-
-    val stopwords: Array[String] = sc.textFile(stopwordFile).collect()
-    mlUtils.removeStopwords(tokens, stopwords)
-  }
-
-
-  /**
-   * 训练LDA
-   * @param countVectors  词组成的向量
-   * @param numTopics 主题数
-   * @param maxIterations 迭代次数
-   * @return  LDA模型
-   */
-  def train(countVectors: RDD[(Long, Vector)], numTopics: Int, maxIterations: Int): LDAModel = {
-
-    //根据语料库大小划分LDA处理的Batch大小
-    val mbf = {
-      // add (1.0 / actualCorpusSize) to MiniBatchFraction be more robust on tiny datasets.
-      val corpusSize = countVectors.count()
-      2.0 / maxIterations + 1.0 / corpusSize
-    }
-    val lda = new LDA()
-      .setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf)))
-      .setK(numTopics)
-      .setOptimizer("em")
-      .setMaxIterations(maxIterations)
-      .setDocConcentration(-1) // use default symmetric document-topic prior
-      .setTopicConcentration(-1) // use default symmetric topic-word prior
-
-    val startTime = System.nanoTime()
-    val ldaModel = lda.run(countVectors)
-    val elapsed = (System.nanoTime() - startTime) / 1e9
-
-    println(s"Finished training LDA model.  Summary:")
-    println(s"Training time (sec)\t$elapsed")
-    println(s"==========")
-
-    ldaModel
-  }
-
-  /**
-   * 预测新文档
-   * @param predFilteredTokens  词组成的向量
-   * @param ldaModel  LDA模型
-   * @param cvModel 向量模型
-   * @return  “文档-主题分布”结果
-   */
-  def predict(predFilteredTokens: DataFrame, ldaModel: LDAModel, cvModel: CountVectorizerModel): RDD[(Long, Vector)] = {
-    val countVectors = cvModel.transform(predFilteredTokens)
-      .select("docId", "features")
-      .map { case Row(docId: Long, countVector: Vector) => (docId, countVector) }
-    var predicted: RDD[(Long, Vector)] = null
-    ldaModel match {
-      case localModel: LocalLDAModel =>
-        predicted = localModel.topicDistributions(countVectors)
-      case distModel: DistributedLDAModel =>
-        predicted = distModel.toLocal.topicDistributions(countVectors)
-      case _ =>
-    }
-    predicted
-  }
-
-  //保存LDA模型和词典数据
-  def save(modelPath: String, ldaModel: LDAModel, filteredTokens: DataFrame): Unit ={
-    val startTime = System.currentTimeMillis()
-    ldaModel.save(sc, modelPath + File.separator + "LDAModel")
-    filteredTokens.write.parquet(modelPath + File.separator + "tokens")
-    val totalTime = System.currentTimeMillis() - startTime
-    println(s"====== 保存模型成功！\n\t耗时：$totalTime")
-  }
-
-  //加载LDA模型和词典数据
-  def load(modelPath: String): (LDAModel, DataFrame) = {
-    val ldaModel = LocalLDAModel.load(sc, modelPath + File.separator + "LDAModel")
-    val filteredTokens = sqlContext.read.parquet(modelPath + File.separator + "tokens")
-    (ldaModel, filteredTokens)
-  }
 }
 
-
 object LDAUtils {
-
-  def saveResult(output: String, countVectors: RDD[(Long, Vector)], uuidMap: mutable.HashMap[Long, String], ldaModel: LDAModel, cvModel: CountVectorizerModel): Unit ={
-    val bwDoc = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output + File.separator + "DocTopics.txt")))
-    val bwTopic = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output + File.separator + "TopicWords.txt")))
-
-    ldaModel match {
-      case localModel: LocalLDAModel =>
-        val docIndices = localModel.topicDistributions(countVectors).collect()
-        for (doc <- docIndices) {
-          val topics = doc._2.toArray.zipWithIndex.map(x => (x._2, x._1))
-          var str = uuidMap.get(doc._1).get.split("\\_")(0).split("\\*")(1) + " "
-          for (topic <- topics) {
-            str += topic._1 + ":" + topic._2 + " "
-          }
-          bwDoc.write(str.substring(0, str.length - 1) + "\n")
-        }
-      case _ =>
-    }
-
-    val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 10)
-    val vocabArray = cvModel.vocabulary
-    val topics = topicIndices.map { case (terms, termWeights) =>
-      terms.map(vocabArray(_)).zip(termWeights)
-    }
-    topics.zipWithIndex.foreach { case (topic, i) =>
-      var str = s"Topic$i:["
-      topic.foreach { case (term, weight) => str +=term + ":" + weight + "," }
-      bwTopic.write(str.substring(0, str.length - 1) + "]\n")
-    }
-
-    bwDoc.close()
-    bwTopic.close()
-  }
-
   /**
-   * 打印“文档-主题分布”
-   * @param countVectors  词组成的向量
-   * @param ldaModel  LDA模型
-   */
-  def printDocIndices(countVectors: RDD[(Long, Vector)], ldaModel: LDAModel): Unit = {
-    //输出文档-主题分布
-    ldaModel match {
-      case localModel: LocalLDAModel =>
-        val docIndices = localModel.topicDistributions(countVectors).collect()
-        println(docIndices.length + " documents:")
-        for (doc <- docIndices) {
-          println(doc._1 + ":" + doc._2)
-        }
-      case _ =>
-    }
-  }
+    * 加载文件, 分词, 创建词汇表, 并将文件准备为term-counts的向量.
+    * @return (corpus, vocabulary as array, total token count in corpus)
+    *         <p>语料（由文档id以及文档的词汇表大小、词索引、词频组成的稀疏向量组成<p>词汇表（数组）<p>语料中的词数
+    */
+  def preprocess(
+                          sc: SparkContext,
+                          paths: Seq[String],
+                          vocabSize: Int,
+                          stopwordFile: String): (RDD[(Long, Vector)], Array[String], Long) = {
 
-  /**
-   * 打印“主题-词分布”
-   * @param ldaModel  LDA模型
-   * @param cvModel 向量模型
-   */
-  def printTopicIndices(ldaModel: LDAModel, cvModel: CountVectorizerModel): Unit = {
+    val sqlContext = SQLContext.getOrCreate(sc)
+    import sqlContext.implicits._
 
-    // 输出主题-词分布，显示每个主题下权重靠前的词
-    val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 10)
-    val vocabArray = cvModel.vocabulary
-    val topics = topicIndices.map { case (terms, termWeights) =>
-      terms.map(vocabArray(_)).zip(termWeights)
+    // 获取文本文件的数据集
+    // 在每个文件中每个文本一行。 如果输入目录包含许多小文件，
+    // 将导致非常多的小分区，这些大量的小分区将降低性能。
+    // 在此情况下，考虑使用coalesce() 方法创建更少的、更大的分区。
+    val df = sc.textFile(paths.mkString(",")).toDF("docs")
+    val customizedStopWords: Array[String] = if (stopwordFile.isEmpty) {
+      Array.empty[String]
+    } else {
+      val stopWordText = sc.textFile(stopwordFile).collect()
+      stopWordText.flatMap(_.stripMargin.split("\\s+"))
     }
-    println("\n" + topics.length + " topics:")
-    topics.zipWithIndex.foreach { case (topic, i) =>
-      println(s"TOPIC $i")
-      topic.foreach { case (term, weight) => println(s"$term\t$weight") }
-      println(s"==========")
-    }
+    val tokenizer = new RegexTokenizer()
+      .setInputCol("docs")
+      .setOutputCol("rawTokens")
+    val stopWordsRemover = new StopWordsRemover()
+      .setInputCol("rawTokens")
+      .setOutputCol("tokens")
+    stopWordsRemover.setStopWords(stopWordsRemover.getStopWords ++ customizedStopWords)
+    val countVectorizer = new CountVectorizer()
+      .setVocabSize(vocabSize)
+      .setInputCol("tokens")
+      .setOutputCol("features")
+
+    val pipeline = new Pipeline()
+      .setStages(Array(tokenizer, stopWordsRemover, countVectorizer))
+
+    val model = pipeline.fit(df)
+    val documents = model.transform(df)
+      .select("features")
+      .map { case Row(features: Vector) => features }
+      .zipWithIndex()
+      .map(_.swap)
+
+    (documents,
+      model.stages(2).asInstanceOf[CountVectorizerModel].vocabulary,  // vocabulary
+      documents.map(_._2.numActives).sum().toLong) // total token count
   }
 }

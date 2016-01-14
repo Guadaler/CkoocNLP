@@ -16,8 +16,8 @@ object StratifiedSamplingDemo extends App {
   val data = sc.parallelize(Seq(("yhao", 5.0), ("abc", 3.2)))
   val fraction = Map(("yhao", 0.4), ("abc", 0.6))
 
-  val approxSample = data.sampleByKey(withReplacement = false, fraction)
-  val exactSample = data.sampleByKeyExact(withReplacement = false, fraction)
+//  val approxSample = data.sampleByKey(withReplacement = false, fraction)
+//  val exactSample = data.sampleByKeyExact(withReplacement = false, fraction)
 
   sc.stop()
 }

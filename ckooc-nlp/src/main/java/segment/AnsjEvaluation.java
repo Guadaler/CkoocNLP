@@ -6,7 +6,9 @@ import org.ansj.splitWord.analysis.IndexAnalysis;
 import org.ansj.splitWord.analysis.NlpAnalysis;
 import org.ansj.splitWord.analysis.ToAnalysis;
 
+import java.io.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,5 +45,21 @@ public class AnsjEvaluation implements Segmenter {
         map.put("IndexAnalysis", result.toString());
 
         return map;
+    }
+
+    public static void main(String[] args)throws IOException {
+        String input = "G:/data/baike/test.txt";
+        String output = "G:/data/baike/test_splited.txt";
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(input)));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output)));
+
+        String line;
+        while ((line = br.readLine()) != null) {
+            bw.write(NlpAnalysis.parse(line).toString() + "\n");
+        }
+
+        br.close();
+        bw.close();
     }
 }
