@@ -1,4 +1,4 @@
-package basicstatistics
+package spark.mllib.basicstatistics
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkContext,SparkConf}
@@ -16,7 +16,7 @@ object SummaryStatisticsDemo extends App {
   val dv1 = Vectors.dense(0.2, 0, 0.5, 4.2)
   val sv1 = Vectors.sparse(4, Array(0, 1, 2, 3), Array(0.9, 2.2, 5.1, 0.31))
 
-  val conf = new SparkConf().setAppName("Summary Statistics").setMaster("local[2]")
+  val conf = new SparkConf().setAppName(s"${this.getClass.getSimpleName}").setMaster("local[2]")
   val sc = new SparkContext(conf)
 
   val vectors = sc.parallelize(Seq(dv1, sv1))

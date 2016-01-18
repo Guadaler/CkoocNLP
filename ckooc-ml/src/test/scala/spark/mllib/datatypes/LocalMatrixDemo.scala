@@ -1,4 +1,4 @@
-package datatypes
+package spark.mllib.datatypes
 
 import org.apache.spark.mllib.linalg.Matrices
 

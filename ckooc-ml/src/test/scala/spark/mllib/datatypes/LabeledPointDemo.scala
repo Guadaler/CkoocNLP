@@ -1,4 +1,4 @@
-package datatypes
+package spark.mllib.datatypes
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkContext, SparkConf}

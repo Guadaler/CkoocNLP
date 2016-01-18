@@ -1,4 +1,4 @@
-package basicstatistics
+package spark.mllib.basicstatistics
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.mllib.linalg.Vectors
@@ -11,7 +11,7 @@ import org.apache.spark.{SparkContext, SparkConf}
 object CorrelationsDemo extends App {
   Logger.getRootLogger.setLevel(Level.WARN)
 
-  val conf = new SparkConf().setAppName("Correlations").setMaster("local[2]")
+  val conf = new SparkConf().setAppName(s"${this.getClass.getSimpleName}").setMaster("local[2]")
   val sc = new SparkContext(conf)
 
   val x = Seq(2.5, 4.0, 0.56)

@@ -40,7 +40,7 @@ object LDADemo {
 
     val input = "G:/data/baike/test.txt".split(",")
     // 创建一个SparkContext和一个SQLContext
-    val conf = new SparkConf().setAppName(s"${this.getClass.getSimpleName}").setMaster("local[2]")
+    val conf = new SparkConf().setAppName(s"${this.getClass.getSimpleName}").setMaster("local")
     val sc = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
 
@@ -68,20 +68,7 @@ object LDADemo {
     // 描述主题
     val topicsDF = model.describeTopics(10)
 
-    val topicsRDD = topicsDF.map(x => (x.getInt(0), x.getSeq[Int](1), x.getSeq[Double](2)))
 
-    val topics = topicsRDD.map { case (topic, terms, termWeights) =>
-      terms.zip(termWeights).map { case (term, weight) => (vocab(term.toInt), weight) }
-    }
-
-    println("10 topics:")
-    topics.zipWithIndex.foreach { case (topic, i) =>
-      println(s"TOPIC $i")
-      topic.foreach { case (term, weight) =>
-        println(s"$term\t$weight")
-      }
-      println()
-    }
 
     // 展示结果
 //    topicsDF.show(false)

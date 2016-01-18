@@ -5,7 +5,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{CountVectorizerModel, CountVectorizer, StopWordsRemover, RegexTokenizer}
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 
 /**
   * Created by yhao on 2016/1/14.
@@ -41,6 +41,7 @@ object LDAUtils {
       stopWordText.flatMap(_.stripMargin.split("\\s+"))
     }
     val tokenizer = new RegexTokenizer()
+      .setMinTokenLength(2)
       .setInputCol("docs")
       .setOutputCol("rawTokens")
     val stopWordsRemover = new StopWordsRemover()
@@ -65,5 +66,27 @@ object LDAUtils {
     (documents,
       model.stages(2).asInstanceOf[CountVectorizerModel].vocabulary,  // vocabulary
       documents.map(_._2.numActives).sum().toLong) // total token count
+  }
+
+  /**
+    * 打印 “主题-词” 结果
+    * @param topicsDF 包含主题的DataFrame
+    * @param vocab  词汇表
+    */
+  def printTopics(topicsDF: DataFrame, vocab: Array[String]): Unit = {
+    val topicsRDD = topicsDF.map( x => (x.getInt(0), x.getSeq[Int](1).toArray, x.getSeq[Double](2).toArray))
+
+    val topics = topicsRDD.map { case (topic, terms, termWeights) =>
+      (topic, terms.zip(termWeights).map { case (term, weight) => (vocab(term.toInt), weight) })
+    }.sortByKey(ascending = true)
+
+    println("10 topics:")
+    topics.foreach { case (topicID, topic) =>
+      println(s"TOPIC $topicID")
+      topic.foreach { case (term, weight) =>
+        println(s"$term\t$weight")
+      }
+      println()
+    }
   }
 }
