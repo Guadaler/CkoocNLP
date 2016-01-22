@@ -20,11 +20,11 @@
 
     <properties>
         <hanlp.version>portable-1.2.7</hanlp.version>
-        <nlpcn.version>1.0.2</nlpcn.version>
+        <nlpcn.version>1.1</nlpcn.version>
         <fnlp.version>2.1</fnlp.version>
         <standfordnlp.version>3.5.2</standfordnlp.version>
         <clearnlp.version>3.2.0</clearnlp.version>
-        <ansj.version>2.0.8</ansj.version>
+        <ansj.version>3.3</ansj.version>
         <jieba.version>1.0.2</jieba.version>
     </properties>
 
