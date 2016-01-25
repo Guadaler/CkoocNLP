@@ -1,4 +1,3 @@
-import com.huaban.analysis.jieba.JiebaSegmenter;
 import segment.*;
 
 import java.util.LinkedHashMap;
@@ -13,7 +12,6 @@ public class SegmentDemo {
     public static Map<String, Set<String>> contrast(String text){
         Map<String, Set<String>> map = new LinkedHashMap<>();
 //        map.put("Stanford分词器", new StandfordEvaluation().seg(text));
-        map.put("Ansj分词器", new AnsjEvaluation().seg(text));
         map.put("HanLP分词器", new HanlpEvaluation().seg(text));
         map.put("FudanNLP分词器", new FnlpEvaluation().seg(text));
         map.put("Jieba分词器", new JiebaEvaluation().seg(text));
@@ -26,7 +24,6 @@ public class SegmentDemo {
     public static Map<String, Map<String, String>> contrastMore(String text){
         Map<String, Map<String, String>> map = new LinkedHashMap<>();
 //        map.put("Stanford分词器", new StandfordEvaluation().segMore(text));
-        map.put("Ansj分词器", new AnsjEvaluation().segMore(text));
         map.put("HanLP分词器", new HanlpEvaluation().segMore(text));
         map.put("FudanNLP分词器", new FnlpEvaluation().segMore(text));
         map.put("Jieba分词器", new JiebaEvaluation().segMore(text));

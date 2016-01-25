@@ -93,13 +93,12 @@
         <module name="ckooc-preprocess" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
+    <bytecodeTargetLevel target="1.8">
       <module name="ckooc-ml" target="1.8" />
       <module name="ckooc-nlp" target="1.8" />
       <module name="ckooc-preprocess" target="1.8" />
       <module name="CkoocNLP" target="1.8" />
       <module name="hanlp" target="1.8" />
-      <module name="nlp-lang" target="1.7" />
     </bytecodeTargetLevel>
   </component>
 </project>

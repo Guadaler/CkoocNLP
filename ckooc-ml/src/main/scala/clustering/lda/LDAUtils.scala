@@ -4,7 +4,7 @@ import java.io.File
 
 import org.apache.spark.SparkContext
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.{CountVectorizerModel, CountVectorizer, StopWordsRemover, RegexTokenizer}
+import org.apache.spark.ml.feature.{CountVectorizer, RegexTokenizer, StopWordsRemover}
 import org.apache.spark.mllib.clustering._
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
@@ -13,27 +13,20 @@ import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 /**
   * Created by yhao on 2016/1/20.
   */
-class LDAUtils {
-
-}
-
-object LDAUtils {
+class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
-    * 预处理，读取数据文件，切分，去除停用词
-    * @param sc SparkContext
+    * 读取数据文件，切分，去除停用词
     * @param paths  数据路径
     * @param vocabSize  词汇表大小
     * @param stopwordFile 停用词文件路径
     * @return (corpus, vocabArray, actualNumTokens)
     */
-  def preprocess(
-                  sc: SparkContext,
+  def filter(
                   paths: Seq[String],
                   vocabSize: Int,
-                  stopwordFile: String): (RDD[(Long, Vector)], Array[String], Long) = {
+                  stopwordFile: String): DataFrame = {
 
-    val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
     val df = sc.textFile(paths.mkString(",")).toDF("docs")
@@ -51,24 +44,34 @@ object LDAUtils {
       .setInputCol("rawTokens")
       .setOutputCol("tokens")
     stopWordsRemover.setStopWords(stopWordsRemover.getStopWords ++ customizedStopWords)
-    val countVectorizer = new CountVectorizer()
-      .setVocabSize(vocabSize)
-      .setInputCol("tokens")
-      .setOutputCol("features")
 
     val pipeline = new Pipeline()
-      .setStages(Array(tokenizer, stopWordsRemover, countVectorizer))
+      .setStages(Array(tokenizer, stopWordsRemover))
 
     val model = pipeline.fit(df)
-    val documents = model.transform(df)
+    val tokens = model.transform(df)
+    tokens
+  }
+
+  /**
+    * 限制vocabSize个词频最高的词形成词汇表，将词频转化为特征向量
+    * @param filteredTokens 过滤后的tokens,作为输入数据
+    * @param trainTokens 过滤后的tokens，用于cvModel模型训练
+    * @param vocabSize  词汇表大小
+    * @return
+    */
+  def FeatureToVector(filteredTokens: DataFrame, trainTokens: DataFrame, vocabSize: Int): (RDD[(Long, Vector)], Array[String], Long) = {
+    val cvModel = new CountVectorizer()
+      .setInputCol("tokens")
+      .setOutputCol("features")
+      .setVocabSize(vocabSize)
+      .fit(trainTokens)
+    val documents = cvModel.transform(filteredTokens)
       .select("features")
       .map { case Row(features: Vector) => features }
       .zipWithIndex()
       .map(_.swap)
-
-    (documents,
-      model.stages(2).asInstanceOf[CountVectorizerModel].vocabulary,  // 词汇表
-      documents.map(_._2.numActives).sum().toLong) // 总词数
+    (documents, cvModel.vocabulary, documents.map(_._2.numActives).sum().toLong)
   }
 
   /**
@@ -81,7 +84,6 @@ object LDAUtils {
     val actualCorpusSize = corpus.count()
     val actualVocabSize = vocabArray.length
 
-    println()
     println(s"语料信息：")
     println(s"\t 训练集大小：$actualCorpusSize documents")
     println(s"\t 词汇表大小：$actualVocabSize terms")
@@ -162,7 +164,6 @@ object LDAUtils {
 
   /**
     * 评估模型，评估标准：似然率和混乱率
- *
     * @param corpus  数据
     * @param ldaModel LDAModel
     * @return (logLikelihood, logPerplexity)
@@ -185,14 +186,26 @@ object LDAUtils {
 
   /**
     * 保存模型和词汇表
-    * @param sc SparkContext
     * @param modelPath  模型保存路径
     * @param ldaModel LDAModel
-    * @param df 词汇表：(index, word)
+    * @param tokens 词汇表：(index, word)
     */
-  def saveModel(sc: SparkContext, modelPath: String, ldaModel: LDAModel, df: DataFrame): Unit = {
-    ldaModel.save(sc, modelPath + File.separator + "model")
-    df.write.parquet(modelPath + File.separator + "df")
+  def saveModel(modelPath: String, ldaModel: LDAModel, tokens: DataFrame): Unit = {
+    ldaModel match {
+      case distModel: DistributedLDAModel =>
+        distModel.toLocal.save(sc, modelPath + File.separator + "model")
+      case localModel: LocalLDAModel =>
+        localModel.save(sc, modelPath + File.separator + "model")
+      case _ =>
+        println("保存模型出错！")
+    }
+    tokens.write.parquet(modelPath + File.separator + "df")
+  }
+
+  def loadModel(modelPath:String): (LDAModel, DataFrame) = {
+    val ldaModel = LocalLDAModel.load(sc, modelPath + File.separator + "model")
+    val tokens = sqlContext.read.parquet(modelPath + File.separator + "df")
+    (ldaModel, tokens)
   }
 
   /**
