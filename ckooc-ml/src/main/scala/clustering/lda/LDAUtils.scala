@@ -1,6 +1,7 @@
 package clustering.lda
 
 import java.io.File
+import java.util.Properties
 
 import org.apache.spark.SparkContext
 import org.apache.spark.ml.Pipeline
@@ -17,6 +18,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 读取数据文件，切分，去除停用词
+    *
     * @param paths  数据路径
     * @param vocabSize  词汇表大小
     * @param stopwordFile 停用词文件路径
@@ -55,6 +57,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 限制vocabSize个词频最高的词形成词汇表，将词频转化为特征向量
+    *
     * @param filteredTokens 过滤后的tokens,作为输入数据
     * @param trainTokens 过滤后的tokens，用于cvModel模型训练
     * @param vocabSize  词汇表大小
@@ -76,6 +79,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 打印语料信息
+    *
     * @param corpus 语料
     * @param vocabArray 词汇表
     * @param actualNumTokens  tokens个数
@@ -93,6 +97,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 训练模型
+    *
     * @param corpus 语料
     * @param k  topic个数
     * @param maxIterations  最大迭代次数
@@ -131,6 +136,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 主题描述，包括主题下每个词以及词的权重
+    *
     * @param ldaModel LDAModel
     * @param vocabArray 词汇表
     * @return 主题-词结果
@@ -164,6 +170,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 评估模型，评估标准：似然率和混乱率
+    *
     * @param corpus  数据
     * @param ldaModel LDAModel
     * @return (logLikelihood, logPerplexity)
@@ -186,6 +193,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 保存模型和词汇表
+    *
     * @param modelPath  模型保存路径
     * @param ldaModel LDAModel
     * @param tokens 词汇表：(index, word)
@@ -210,6 +218,7 @@ class LDAUtils(sc: SparkContext, sqlContext: SQLContext) {
 
   /**
     * 预测新文档的“文档-主题分布”
+    *
     * @param ldaModel LDAModel
     * @param documents  文档
     * @return “文档-主题分布”：(docID, topicDistributions)

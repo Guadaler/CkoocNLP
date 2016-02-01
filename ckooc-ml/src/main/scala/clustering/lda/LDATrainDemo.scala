@@ -11,6 +11,8 @@ object LDATrainDemo {
   def main(args: Array[String]) {
     Logger.getRootLogger.setLevel(Level.WARN)
 
+
+
     val conf = new SparkConf().setAppName("LDAExample").setMaster("local[2]")
     val sc = new SparkContext(conf)
     val sqlContext = SQLContext.getOrCreate(sc)
