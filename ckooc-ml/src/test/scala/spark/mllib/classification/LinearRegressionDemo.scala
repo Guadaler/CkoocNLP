@@ -1,12 +1,11 @@
 package spark.mllib.classification
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.mllib.classification.{SVMModel, LogisticRegressionWithLBFGS}
-import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.optimization.{SimpleUpdater, SquaredL2Updater, L1Updater}
-import org.apache.spark.mllib.regression.{LassoWithSGD, RidgeRegressionWithSGD, LinearRegressionWithSGD, LabeledPoint}
+import org.apache.spark.mllib.optimization.{L1Updater, SimpleUpdater, SquaredL2Updater}
+import org.apache.spark.mllib.regression.{LabeledPoint, LassoWithSGD, LinearRegressionWithSGD, RidgeRegressionWithSGD}
+import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
   * Created by yhao on 2016/2/1.
@@ -18,18 +17,8 @@ object LinearRegressionDemo {
     val conf: SparkConf = new SparkConf().setAppName(s"${this.getClass.getSimpleName}").setMaster("local[2]")
     val sc: SparkContext = new SparkContext(conf)
 
-    //解析数据
-    val data: RDD[String] = sc.textFile("ckooc-ml/data/classificationAndRegression/sample_linear_regression_data.txt")
-    val parsedData = data.map {line =>
-      val parts = line.split(" ")
-      val (indices, values) = parts.tail.filter(_.nonEmpty).map {item =>
-        val indexAndValue = item.split(':')
-        val index = indexAndValue(0).toInt - 1 // Convert 1-based indices to 0-based.
-        val value = indexAndValue(1).toDouble
-        (index, value)
-      }.unzip
-      LabeledPoint(parts.head.toDouble, Vectors.sparse(10, indices.toArray, values.toArray))
-    }.cache()
+    //加载数据
+    val parsedData: RDD[LabeledPoint] = MLUtils.loadLibSVMFile(sc, "ckooc-ml/data/classificationAndRegression/sample_linear_regression_data.txt")
 
     //将数据按60%训练，40%测试进行划分
     val splits: Array[RDD[LabeledPoint]] = parsedData.randomSplit(Array(0.6, 0.4), seed = 11L)
@@ -68,18 +57,18 @@ object LinearRegressionDemo {
     }
 
     //使用训练模型进行预测
-    val valuesAndPreds = test.map {point =>
+    val labelAndPrediction = test.map {point =>
       val prediction = model.predict(point.features)
       (point.label, prediction)
     }
 
     //输出得分和标签，进行对比
-    valuesAndPreds.take(10).foreach{case(label, prediction) =>
+    labelAndPrediction.take(10).foreach{case(label, prediction) =>
       println("Label: " + label + ", Prediction: " + prediction)
     }
 
     //计算均方误差来估计拟合度
-    val MSE = valuesAndPreds.map{case(v, p) => math.pow(v - p, 2)}.mean()
+    val MSE = labelAndPrediction.map{case(v, p) => math.pow(v - p, 2)}.mean()
     println("training Mean Squared Error = " + MSE)
 
     //保存模型
