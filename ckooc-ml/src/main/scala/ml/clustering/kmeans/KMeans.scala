@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package clustering.kmeans
+package ml.clustering.kmeans
 
 import feature.TFIDF
 import org.apache.log4j.{Level, Logger}
@@ -96,7 +96,7 @@ object KMeans {
     val conf = new SparkConf().setAppName("KMeans").setMaster("local")
     val sc = new SparkContext(conf)
 
-    val inputPath = "ckooc-ml/data/clustering/kmeans_standard_data.txt"
+    val inputPath = "ckooc-ml/data/ml.clustering/kmeans_standard_data.txt"
     val k = 15
     val numIterations = 100
     val input = sc.textFile(inputPath)

@@ -6,7 +6,7 @@ package algorithms.apriori;
  */
 public class Client {
     public static void main(String[] args){
-        String filePath = "C:\\Users\\lyq\\Desktop\\icon\\testInput.txt";
+        String filePath = "./testInput.txt";
 
         Apriori tool = new Apriori(filePath, 2);
         tool.printAttachRule(0.7);

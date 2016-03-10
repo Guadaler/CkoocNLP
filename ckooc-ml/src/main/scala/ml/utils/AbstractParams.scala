@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package utils
+package ml.utils
 
 import scala.reflect.runtime.universe._
 

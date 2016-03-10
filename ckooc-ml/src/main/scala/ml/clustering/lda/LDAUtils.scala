@@ -1,4 +1,4 @@
-package clustering.lda
+package ml.clustering.lda
 
 import java.io.File
 import java.util.Properties

@@ -1,4 +1,4 @@
-package clustering.lda
+package ml.clustering.lda
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.mllib.clustering.LDAModel

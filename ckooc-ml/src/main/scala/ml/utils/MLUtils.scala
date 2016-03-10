@@ -1,4 +1,4 @@
-package utils
+package ml.utils
 
 import org.apache.spark.ml.feature.{CountVectorizer, CountVectorizerModel, RegexTokenizer, StopWordsRemover}
 import org.apache.spark.mllib.linalg.{Vectors, SparseVector, Vector}
