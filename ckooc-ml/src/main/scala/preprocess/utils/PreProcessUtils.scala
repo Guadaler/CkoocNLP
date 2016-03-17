@@ -17,7 +17,9 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Created by yhao on 2016/3/12.
+  * 数据预处理类，包含以下操作：
+  * <p>&nbsp &nbsp &nbsp &nbsp基本清洗（繁简转换、全半角转换、去除无意义词）、分词、分句、分段、去除停用词、去除低频词</p>
+  * <p>Created by yhao on 2016/3/12.</p>
   */
 class PreProcessUtils (config: Config) extends Logging with Serializable {
 
@@ -31,6 +33,8 @@ class PreProcessUtils (config: Config) extends Logging with Serializable {
 
   /**
     * 全角转半角
+    * @param line 输入数据
+    * @return 转换为半角的数据
     */
   private def q2b(line: String): String = {
     zhConverter.convert(line)
@@ -127,45 +131,12 @@ class PreProcessUtils (config: Config) extends Logging with Serializable {
 
 
   /**
-    * 获取低频词
-    * @param rareTermNum  词频阀值，低于此阀值的将会被过滤
-    * @param wordRDD  词序列
-    * @return 低频词数组
-    */
-  def getRareTerms(rareTermNum: Int, wordRDD: RDD[Seq[String]]): Array[String] = {
-    val wc = wordRDD.flatMap(words => words).map((_, 1)).reduceByKey(_ + _)
-    val result = wc.filter(word => word._2 < rareTermNum).map(word => word._1)
-    result.collect()
-  }
-
-
-  /**
-    * 删除低频词
-    * @param words  输入词序列
-    * @param rares  低频词数组
-    * @return 删除低频词后的词
-    */
-  def delRareTerms(words: Seq[String], rares: Array[String]): Seq[String] = {
-    val result = new ArrayBuffer[String]()
-    val wordsArray = words.toArray
-
-    for (word <- wordsArray) {
-      if (!rares.contains(word)) {
-        result += word
-      }
-    }
-
-    result.toSeq
-  }
-
-
-  /**
     * 分句，对文本按标点进行分句
     *
     * @param content  一行文本
     * @return 每一句为一个元素的数组
     */
-  def getToSentences(content: String, minLength: Int): Array[String] = {
+  def sentenceSegment(content: String, minLength: Int): Array[String] = {
     val result = mutable.ArrayBuffer[String]()
 //    val puncs = Array(',', '，', '.', '。', '!', '！', '?', '？', ';', '；', ':', '：', '\'', '‘', '’', '\"', '”', '“', '、', '(', '（', ')', '）', '<', '《', '>', '》', '[', '【', '】', ']', '{', '}', ' ', '\t', '\r', '\n') // 标点集合
     val puncs = Array('.', '。', '!', '！', '?', '？', '\t', '\r', '\n') // 标点集合
@@ -196,6 +167,7 @@ class PreProcessUtils (config: Config) extends Logging with Serializable {
     result.filter(sentence => sentence.length >= minLength).toArray
   }
 
+
   /**
     * 分段，对文本按指定的分隔符分段
     *
@@ -203,7 +175,7 @@ class PreProcessUtils (config: Config) extends Logging with Serializable {
     * @param sep  分隔符
     * @return 每一段为一个元素的数组
     */
-  def getToParagraphs(content: String, sep: String): Array[String] = {
+  def paragraphSegment(content: String, sep: String): Array[String] = {
     val result = new ArrayBuffer[String]()
     val paragraphs = content.split(sep)
     for (paragraph <- paragraphs) {
@@ -215,6 +187,42 @@ class PreProcessUtils (config: Config) extends Logging with Serializable {
 
     result.toArray
   }
+
+
+  /**
+    * 获取低频词
+    *
+    * @param rareTermNum  词频阀值，低于此阀值的将会被过滤
+    * @param wordRDD  词序列
+    * @return 低频词数组
+    */
+  def getRareTerms(rareTermNum: Int, wordRDD: RDD[Seq[String]]): Array[String] = {
+    val wc = wordRDD.flatMap(words => words).map((_, 1)).reduceByKey(_ + _)
+    val result = wc.filter(word => word._2 < rareTermNum).map(word => word._1)
+    result.collect()
+  }
+
+
+  /**
+    * 删除低频词
+    *
+    * @param words  输入词序列
+    * @param rares  低频词数组
+    * @return 删除低频词后的词
+    */
+  def delRareTerms(words: Seq[String], rares: Array[String]): Seq[String] = {
+    val result = new ArrayBuffer[String]()
+    val wordsArray = words.toArray
+
+    for (word <- wordsArray) {
+      if (!rares.contains(word)) {
+        result += word
+      }
+    }
+
+    result.toSeq
+  }
+
 
   /**
     * 判断符号是否有意义
@@ -268,7 +276,7 @@ class PreProcessUtils (config: Config) extends Logging with Serializable {
     * @return 一个元素代表一条记录
     */
   def runSplitWords(sc: SparkContext, rdd: RDD[String]): RDD[Seq[String]] = {
-    val splitWord = config.splitWord
+//    val splitWord = config.splitWord
     val delStopword = config.delStopword
     val toSentence = config.toSentence
     val minLineLen = config.minLineLen
@@ -285,12 +293,12 @@ class PreProcessUtils (config: Config) extends Logging with Serializable {
 
     //是否分段
     if (toParagraphs) {
-      contentRDD = contentRDD.flatMap(line => getToParagraphs(line, paragraphSeparator))
+      contentRDD = contentRDD.flatMap(line => paragraphSegment(line, paragraphSeparator))
     }
 
     //是否分句，并且过滤最小句子长度
     if (toSentence) {
-      contentRDD = contentRDD.flatMap(line => getToSentences(line, minLineLen))
+      contentRDD = contentRDD.flatMap(line => sentenceSegment(line, minLineLen))
     } else {
       contentRDD = contentRDD.filter(line => line.length >= minLineLen)
     }
@@ -351,19 +359,20 @@ object PreProcessUtils extends Logging {
 
   def main(args: Array[String]) {
     val nlpUtils = PreProcessUtils()
-    val fileUtils = new FileUtils
 
     val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local[2]")
     val sc = new SparkContext(conf)
 
     val inFile = "G:/test/sample.txt"
+//    val inFile = args(0)
+//    val outFile = args(1)
     val sep = "\u00EF"
 
     val textRDD = sc.textFile(inFile).map(line => contentExtract(line, sep, 6, 13).mkString(""))
 
     val splitedRDD = nlpUtils.runSplitWords(sc, textRDD)
 
-    splitedRDD.map(words => words.mkString(" ")).foreach(println)
+//    splitedRDD.map(words => words.mkString(" ")).saveAsTextFile(outFile)
 
     sc.stop()
   }

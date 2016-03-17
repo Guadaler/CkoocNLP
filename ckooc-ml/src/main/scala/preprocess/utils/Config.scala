@@ -1,5 +1,7 @@
 package preprocess.utils
 
+
+
 import java.io.{BufferedReader, FileInputStream, InputStreamReader}
 import java.util.Properties
 
@@ -18,15 +20,18 @@ case class Config(f2j: Boolean, q2b: Boolean, delNum: Boolean, numToChar: String
 object Config extends Logging {
 
   /**
-   * 参数列表
-   */
+    * 参数列表
+    */
   val PARAMS = List("f2j", "q2b", "delNum", "delEn", "delStopword", "minLineLen",
     "toSentence", "splitWord", "minTermSize", "minTermNum", "delRareTerm",
     "rareTermNum", "toParagraphs", "paragraphSeparator", "numToChar", "oneGram")
 
   /**
-   * 根据Properties配置文件返回一个Config对象
-   */
+    * 根据Properties配置文件返回一个Config对象
+    *
+    * @param prop 参数配置
+    * @return Config
+    */
   def apply(prop: Properties): Config = {
     checkParams(prop)
     printParams(prop)
@@ -50,8 +55,10 @@ object Config extends Logging {
   }
 
   /**
-   * 从prop文件初始化配置文件
-   */
+    * 从prop文件初始化配置文件
+    * @param propFile 配置文件路径
+    * @return Config
+    */
   def apply(propFile: String): Config = {
     val prop = new Properties
     try {
@@ -63,8 +70,10 @@ object Config extends Logging {
   }
 
   /**
-   * 从key=value数组里初始化配置类
-   */
+    * 从key=value数组里初始化配置类
+    * @param kvs  key=value数组
+    * @return Config
+    */
   def apply(kvs: Array[String]): Config = {
     val prop = new Properties
     kvs.foreach { kv =>
@@ -79,8 +88,9 @@ object Config extends Logging {
   }
 
   /**
-   * 打印参数
-   */
+    * 打印参数
+    * @param prop 配置项
+    */
   def printParams(prop: Properties) {
     val propSet = prop.entrySet().iterator()
     while (propSet.hasNext) {
@@ -90,8 +100,9 @@ object Config extends Logging {
   }
 
   /**
-   * 检查参数
-   */
+    * 检查参数
+    * @param prop 配置项
+    */
   def checkParams(prop: Properties) {
     val keyItr = prop.keySet().iterator()
     while (keyItr.hasNext) {
@@ -107,3 +118,4 @@ object Config extends Logging {
     val config = Config("config/ml-config.properties")
   }
 }
+
