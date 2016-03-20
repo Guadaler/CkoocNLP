@@ -6,6 +6,7 @@ import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.{SparkContext, SparkConf}
+import utils.LDAUtils
 
 /**
   * Created by yhao on 2016/1/21.
@@ -17,24 +18,34 @@ object LDAPredictDemo {
 
     val conf = new SparkConf().setAppName("LDA").setMaster("local[2]")
     val sc = new SparkContext(conf)
-    val sqlContext = SQLContext.getOrCreate(sc)
+
+    val ldaUtils = LDAUtils("config/lda.properties")
 
     val vocabSize = 10000
-    val stopwordFile = "ckooc-ml/data/stopword.txt"
-    val input = "G:/sample/1999999_split.txt".split(",")
-    val modelPath = "G:/sample"
+    val inFile = "data/preprocess_result.txt"
+    val modelPath = "G:/test/LDAModel"
 
-    val ldaUtils = new LDAUtils(sc, sqlContext)
+    val textRDD = sc.textFile(inFile).filter(_.nonEmpty)
 
-    val (ldaModel, trainTokens): (LDAModel, DataFrame) = ldaUtils.loadModel(modelPath)
-    val tokens = ldaUtils.filter(input, vocabSize, stopwordFile)
-    val (documents, vocabArray, actualNumTokens) = ldaUtils.FeatureToVector(tokens, trainTokens, vocabSize)
-    val predicted: RDD[(Long, Vector)] = ldaUtils.predict(ldaModel, documents)
+    val (ldaModel, trainTokens, vocabRDD): (LDAModel, DataFrame, RDD[String]) = ldaUtils.loadModel(sc, modelPath)
+    val tokens = ldaUtils.splitLine(sc, textRDD, vocabSize)
 
-    val docTopics: RDD[(Long, Vector)] = ldaUtils.docTopics(ldaModel, predicted)
+    val documents = ldaUtils.featureToVector(tokens, trainTokens, vocabSize)._1
+
+    val docTopics: RDD[(Long, Vector)] = ldaUtils.docTopics(ldaModel, documents)
     println("文档-主题分布：")
     docTopics.collect().foreach(doc => {
       println(doc._1 + ": " + doc._2)
+    })
+
+    val topicWords: Array[Array[(String, Double)]] = ldaUtils.topicWords(ldaModel, vocabRDD.collect())
+    println("主题-词：")
+    topicWords.zipWithIndex.foreach(topic => {
+      println("Topic: " + topic._2)
+      topic._1.foreach(word => {
+        println(word._1 + "\t" + word._2)
+      })
+      println()
     })
 
     sc.stop()
