@@ -1,12 +1,12 @@
 package ml.clustering.lda
 
+import _root_.utils.LDAUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.mllib.clustering.LDAModel
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.{SparkContext, SparkConf}
-import utils.LDAUtils
 
 /**
   * Created by yhao on 2016/1/21.
