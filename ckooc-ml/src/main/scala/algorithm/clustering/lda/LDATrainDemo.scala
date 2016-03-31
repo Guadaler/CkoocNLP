@@ -15,6 +15,7 @@ object LDATrainDemo {
     val conf = new SparkConf().setAppName("LDATrain").setMaster("local")
     val sc = new SparkContext(conf)
 
+    //加载配置文件
     val ldaUtils = LDAUtils("config/lda.properties")
 
     val args = Array("data/preprocess_result.txt", "G:/test/LDAModel")
@@ -22,9 +23,13 @@ object LDATrainDemo {
     val inFile = args(0)
     val outFile = args(1)
 
+    //切分数据
     val textRDD = sc.textFile(inFile).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
+
+    //训练模型
     val (ldaModel, vocabulary, documents, tokens) = ldaUtils.train(sc, textRDD)
 
+    //计算“文档-主题分布”
     val docTopics: RDD[(Long, Vector)] = ldaUtils.calcDocTopics(ldaModel, documents)
 
     println("文档-主题分布：")
@@ -32,6 +37,7 @@ object LDATrainDemo {
       println(doc._1 + ": " + doc._2)
     })
 
+    //计算“主题-词”
     val topicWords: Array[Array[(String, Double)]] = ldaUtils.calcTopicWords(ldaModel, vocabulary.collect())
     println("主题-词：")
     topicWords.zipWithIndex.foreach(topic => {
@@ -42,6 +48,7 @@ object LDATrainDemo {
       println()
     })
 
+    //保存模型和训练结果tokens
     ldaUtils.saveModel(sc, outFile, ldaModel, tokens)
 
     sc.stop()

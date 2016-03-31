@@ -10,7 +10,7 @@ NLP数据预处理代码实现
 ====================================
 [数据预处理代码](https://github.com/yhao2014/CkoocNLP/blob/master/ckooc-ml/src/main/scala/algorithm/utils/PreProcessUtils.scala)
 ，主要进行以下操作：<br>
->>
+>
 * 繁简转换
 * 全半角转换
 * 去除无意义词

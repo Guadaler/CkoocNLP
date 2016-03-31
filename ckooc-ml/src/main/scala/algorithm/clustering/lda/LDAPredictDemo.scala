@@ -9,6 +9,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
+  * LDA新文档预测Demo
   * Created by yhao on 2016/1/21.
   */
 object LDAPredictDemo {
@@ -21,16 +22,19 @@ object LDAPredictDemo {
 
     val ldaUtils = LDAUtils("config/lda.properties")
 
-    val args = Array("data/preprocess_result.txt", "G:/test/LDAModel", "")
+    val args = Array("data/preprocess_result.txt", "G:/test/LDAModel", "G:/test/result")
 
     val inFile = args(0)
     val modelPath = args(1)
     val outFile = args(2)
 
+    //切分数据
     val textRDD = sc.textFile(inFile).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
 
+    //加载LDAModel
     val (ldaModel, trainTokens) = ldaUtils.loadModel(sc, modelPath)
 
+    //预测文档，得到“文档-主题分布”和“主题-词”结果
     val (docTopics, topicWords) = ldaUtils.predict(sc, textRDD, ldaModel, trainTokens)
 
     println("文档-主题分布：")
@@ -47,12 +51,19 @@ object LDAPredictDemo {
       println()
     })
 
-//    saveReasult(docTopics, topicWords, outFile)
+    //保存结果
+    saveReasult(docTopics, topicWords, outFile)
 
     sc.stop()
   }
 
 
+  /**
+    * 保存预测结果
+    * @param docTopics  文档-主题分布
+    * @param topicWords 主题-词
+    * @param outFile  输出路径
+    */
   def saveReasult(docTopics: RDD[(Long, Vector)], topicWords: Array[Array[(String, Double)]], outFile: String): Unit = {
     val bw1 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile + File.separator + "docTopics.txt")))
     val bw2 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile + File.separator + "topicWords.txt")))

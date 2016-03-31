@@ -33,6 +33,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
 
   private val zhConverter = ZHConverter.getInstance(1)
 
+
   /**
     * 全角转半角
     *
@@ -115,7 +116,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
         }
       }
       if (arrayBuffer.size >= minTermNum) {
-        Some(arrayBuffer.toSeq)
+        Some(arrayBuffer)
       } else {
         None
       }
@@ -177,7 +178,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
       }
     }
 
-    (id, result.toSeq)
+    (id, result)
   }
 
 
@@ -195,6 +196,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
 
     result
   }
+
 
   /**
     * 文本中出现明文的\r\n等转以符号
@@ -317,6 +319,7 @@ object PreProcessUtils extends Logging {
     val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local")
     val sc = new SparkContext(conf)
 
+    //设置log等级为WARN
     Logger.getRootLogger.setLevel(Level.WARN)
 
     val args = Array("data/preprocess_sample_data.txt", "", "\u00EF")
@@ -325,12 +328,15 @@ object PreProcessUtils extends Logging {
     val outFile = args(1)
     val sep = args(2)
 
+    //提取指定字段的数据(id, title, content)
     val extractRDD = sc.textFile(inFile).map(line => contentExtract(line, 14, sep, 0, 6, 13)).filter(line => line(2) != null)
+
+    //合并字段内容(title+content)
     val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(1) + tokens(2)))
 //    val extractRDD = sc.textFile(inFile).map(line => contentExtract(line, 6, sep, 0, 1, 5)).filter(line => line(2) != null)
 //    val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(2)))
 
-
+    //分词等预处理，得到分词后的结果
     val splitedRDD = preUtils.runPreProcess(sc, textRDD)
 
     //--本地测试使用：写入本地文件
