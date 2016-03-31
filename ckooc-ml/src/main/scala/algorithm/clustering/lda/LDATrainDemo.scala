@@ -1,6 +1,6 @@
-package ml.clustering.lda
+package algorithm.clustering.lda
 
-import _root_.utils.LDAUtils
+import algorithm.utils.LDAUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
@@ -17,20 +17,22 @@ object LDATrainDemo {
 
     val ldaUtils = LDAUtils("config/lda.properties")
 
-    val inFile = "data/preprocess_result.txt"
-    val outFile = "G:/test/LDAModel"
+    val args = Array("data/preprocess_result.txt", "G:/test/LDAModel")
 
-    val textRDD = sc.textFile(inFile).filter(_.nonEmpty)
+    val inFile = args(0)
+    val outFile = args(1)
+
+    val textRDD = sc.textFile(inFile).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
     val (ldaModel, vocabulary, documents, tokens) = ldaUtils.train(sc, textRDD)
 
-    val docTopics: RDD[(Long, Vector)] = ldaUtils.docTopics(ldaModel, documents)
+    val docTopics: RDD[(Long, Vector)] = ldaUtils.calcDocTopics(ldaModel, documents)
 
     println("文档-主题分布：")
     docTopics.collect().foreach(doc => {
       println(doc._1 + ": " + doc._2)
     })
 
-    val topicWords: Array[Array[(String, Double)]] = ldaUtils.topicWords(ldaModel, vocabulary.collect())
+    val topicWords: Array[Array[(String, Double)]] = ldaUtils.calcTopicWords(ldaModel, vocabulary.collect())
     println("主题-词：")
     topicWords.zipWithIndex.foreach(topic => {
       println("Topic: " + topic._2)
@@ -40,9 +42,8 @@ object LDATrainDemo {
       println()
     })
 
-    ldaUtils.saveModel(sc, outFile, ldaModel, vocabulary, tokens)
+    ldaUtils.saveModel(sc, outFile, ldaModel, tokens)
 
     sc.stop()
   }
 }
-// scalastyle:on println

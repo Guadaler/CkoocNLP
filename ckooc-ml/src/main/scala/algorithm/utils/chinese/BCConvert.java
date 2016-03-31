@@ -1,4 +1,4 @@
-package utils.chinese;
+package algorithm.utils.chinese;
 
 import org.apache.commons.lang3.StringUtils;
 

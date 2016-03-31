@@ -1,9 +1,10 @@
-package utils
+package algorithm.utils
 
-import java.io.{FileOutputStream, OutputStreamWriter, BufferedWriter}
+import java.io._
 import java.util
 import java.util.Properties
 
+import algorithm.utils.chinese.ZHConverter
 import com.hankcs.hanlp.HanLP
 import conf.PreProcessConfig
 import org.ansj.domain.Term
@@ -13,8 +14,6 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{Logging, SparkConf, SparkContext}
-import org.nlpcn.commons.lang.standardization.SentencesUtil
-import utils.chinese.ZHConverter
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -72,19 +71,16 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     * @param numToChar  数字的替换内容
     * @param delEn 是否去掉英文字符
     */
-  def getBaseCleanFunc(delNum: Boolean, numToChar: String = "", delEn: Boolean): (String) => String = {
-    (line: String) =>
-    {
-      var result = line.trim()
-      result = baseClean(result)
-      if (delNum) {
-        result = numExpr.replaceAllIn(result, numToChar)
-      }
-      if (delEn) {
-        result = enExpr.replaceAllIn(result, "")
-      }
-      result
+  def baseCleanFunc(line: String, delNum: Boolean, numToChar: String = "", delEn: Boolean): String = {
+    var result = line.trim()
+    result = baseClean(result)
+    if (delNum) {
+      result = numExpr.replaceAllIn(result, numToChar)
     }
+    if (delEn) {
+      result = enExpr.replaceAllIn(result, "")
+    }
+    result
   }
 
 
@@ -96,26 +92,21 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     * @param minTermNum 分词后分词的个数，只保留大于指定个数的内容
     * @param minTermSize 单个term的长度,只保留大于指定长度的term
     */
-  def wordSegment(text: String, delStopword: Boolean, minTermSize: Int, minTermNum: Int, toSentence: Boolean = false): Option[Seq[String]] = {
+  def wordSegment(text: String, delStopword: Boolean, minTermSize: Int, minTermNum: Int, stopwordArray: Array[String]): Option[Seq[String]] = {
     var arrayBuffer = ArrayBuffer[String]()
     if (text != null && text != "") {
       val tmp = new util.ArrayList[Term]()
-      if (!toSentence) {
-        var result = NlpAnalysis.parse(text)
-        if (delStopword) {
-          result = FilterModifWord.modifResult(result)
+      var result = NlpAnalysis.parse(text)
+      if (delStopword) {
+        val stopwordList = new util.ArrayList[String]()
+        for (term <- stopwordArray) {
+          stopwordList.add(term)
         }
-        tmp.addAll(result)
-      } else {
-        val sentences = new SentencesUtil().toSentenceList(text)
-        for (i <- 0 until sentences.size()) {
-          var result = NlpAnalysis.parse(sentences.get(i))
-          if (delStopword) {
-            result = FilterModifWord.modifResult(result)
-          }
-          tmp.addAll(result)
-        }
+        FilterModifWord.insertStopWords(stopwordList)
+        result = FilterModifWord.modifResult(result)
       }
+      tmp.addAll(result)
+
       for (i <- 0 until tmp.size()) {
         val term = tmp.get(i)
         var item = term.getName.trim()
@@ -131,44 +122,6 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     } else {
       None
     }
-  }
-
-
-  /**
-    * 分句，对文本按标点进行分句
-    *
-    * @param content  一行文本
-    * @return 每一句为一个元素的数组
-    */
-  def sentenceSegment(content: String, minLength: Int): Array[String] = {
-    val result = mutable.ArrayBuffer[String]()
-//    val puncs = Array(',', '，', '.', '。', '!', '！', '?', '？', ';', '；', ':', '：', '\'', '‘', '’', '\"', '”', '“', '、', '(', '（', ')', '）', '<', '《', '>', '》', '[', '【', '】', ']', '{', '}', ' ', '\t', '\r', '\n') // 标点集合
-    val puncs = Array('.', '。', '!', '！', '?', '？', '\t', '\r', '\n') // 标点集合
-    var tmp = ""
-    var i = 0
-    var before = ' '
-    for (ch <- content) {
-      i += 1
-      if (ch == '.' && Character.isDigit(before) && i < content.length && Character.isDigit(content.charAt(i))) {
-        tmp += ch
-      }
-      else if (puncs.contains(ch)) {
-        if (tmp != "") {
-          result ++= dealWithSpecialCase(tmp)
-          tmp = ""
-        }
-      }
-      else {
-        if (isMeaningful(ch)) tmp += ch
-        if (i == content.length) {
-          result ++= dealWithSpecialCase(tmp)
-          tmp = ""
-        }
-      }
-      before = ch
-    }
-
-    result.filter(sentence => sentence.length >= minLength).toArray
   }
 
 
@@ -200,8 +153,8 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     * @param wordRDD  词序列
     * @return 低频词数组
     */
-  def getRareTerms(rareTermNum: Int, wordRDD: RDD[Seq[String]]): Array[String] = {
-    val wc = wordRDD.flatMap(words => words).map((_, 1)).reduceByKey(_ + _)
+  def getRareTerms(rareTermNum: Int, wordRDD: RDD[(Long, scala.Seq[String])]): Array[String] = {
+    val wc = wordRDD.flatMap(words => words._2).map((_, 1)).reduceByKey(_ + _)
     val result = wc.filter(word => word._2 < rareTermNum).map(word => word._1)
     result.collect()
   }
@@ -214,7 +167,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     * @param rares  低频词数组
     * @return 删除低频词后的词
     */
-  def delRareTerms(words: Seq[String], rares: Array[String]): Seq[String] = {
+  def delRareTerms(id: Long, words: Seq[String], rares: Array[String]): (Long, scala.Seq[String]) = {
     val result = new ArrayBuffer[String]()
     val wordsArray = words.toArray
 
@@ -224,7 +177,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
       }
     }
 
-    result.toSeq
+    (id, result.toSeq)
   }
 
 
@@ -279,11 +232,9 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     * @param rdd 输入的一行数据
     * @return 一个元素代表一条记录
     */
-  def runPreProcess(sc: SparkContext, rdd: RDD[String]): RDD[Seq[String]] = {
+  def runPreProcess(sc: SparkContext, rdd: RDD[(Long, String)]): RDD[(Long, Seq[String])] = {
 //    val splitWord = config.splitWord
     val delStopword = config.delStopword
-    val toSentence = config.toSentence
-    val minLineLen = config.minLineLen
     val minTermSize = config.minTermSize
     val minTermNum = config.minTermNum
     val rareTermNum = config.rareTermNum
@@ -296,24 +247,22 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     var contentRDD = rdd
 
     //是否分段
-    if (toParagraphs) {
+    /*if (toParagraphs) {
       contentRDD = contentRDD.flatMap(line => paragraphSegment(line, paragraphSeparator))
-    }
+    }*/
 
-    //是否分句，并且过滤最小句子长度
-    if (toSentence) {
-      contentRDD = contentRDD.flatMap(line => sentenceSegment(line, minLineLen))
-    } else {
-      contentRDD = contentRDD.filter(line => line.length >= minLineLen)
-    }
+    val stopwordArray = sc.textFile(config.stopwordPath).collect()
+    val broadStopword = sc.broadcast(stopwordArray)
 
     //清洗数据，分词，去除停用词
-    var resultRDD = contentRDD.mapPartitions(str => str.map(getBaseCleanFunc(delNum, numToChar, delEn))).map(line => wordSegment(line, delStopword, minTermSize, minTermNum, toSentence)).filter(_.nonEmpty).map(_.get)
+    var resultRDD = contentRDD.map(str => (str._1, baseCleanFunc(str._2, delNum, numToChar, delEn))).map{line =>
+      (line._1, wordSegment(line._2, delStopword, minTermSize, minTermNum, broadStopword.value))
+    }.filter(_._2.nonEmpty).map(line => (line._1, line._2.get))
 
     //去除低频词
     if (config.delRareTerm) {
       val rareArray = getRareTerms(rareTermNum, resultRDD)
-      resultRDD = resultRDD.map(words => delRareTerms(words, rareArray))
+      resultRDD = resultRDD.map(words => delRareTerms(words._1, words._2, rareArray))
     }
 
     resultRDD
@@ -365,27 +314,38 @@ object PreProcessUtils extends Logging {
   def main(args: Array[String]) {
     val preUtils = PreProcessUtils("config/preprocess.properties")
 
-    val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local[2]")
+    val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local")
     val sc = new SparkContext(conf)
 
     Logger.getRootLogger.setLevel(Level.WARN)
 
-    val inFile = "data/preprocess_sample_data.txt"
-//    val inFile = args(0)
-//    val outFile = args(1)
-    val sep = "\u00EF"
+    val args = Array("data/preprocess_sample_data.txt", "", "\u00EF")
 
-    val textRDD = sc.textFile(inFile).map(line => contentExtract(line, 14, sep, 6, 13).mkString(""))
+    val inFile = args(0)
+    val outFile = args(1)
+    val sep = args(2)
+
+    val extractRDD = sc.textFile(inFile).map(line => contentExtract(line, 14, sep, 0, 6, 13)).filter(line => line(2) != null)
+    val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(1) + tokens(2)))
+//    val extractRDD = sc.textFile(inFile).map(line => contentExtract(line, 6, sep, 0, 1, 5)).filter(line => line(2) != null)
+//    val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(2)))
+
+
     val splitedRDD = preUtils.runPreProcess(sc, textRDD)
-    val result = splitedRDD.map(words => words.mkString(" ")).collect()
 
-    //写入文件
+    //--本地测试使用：写入本地文件
+    val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" ")).collect()
     val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("data/preprocess_result.txt")))
     for (line <- result) {
       bw.write(line + "\n")
     }
-
     bw.close()
+
+
+    //--集群使用：写入HDFS指定路径
+    /*val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" "))
+    result.saveAsTextFile(args(1))*/
+
     sc.stop()
   }
 }

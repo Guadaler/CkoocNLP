@@ -1,4 +1,4 @@
-package utils
+package algorithm.utils
 
 import java.io.File
 import java.util.Properties
@@ -45,12 +45,12 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param vocabSize  词汇表大小
     * @return (corpus, vocabArray, actualNumTokens)
     */
-  def splitLine(sc: SparkContext, textRDD: RDD[String], vocabSize: Int): DataFrame = {
+  def splitLine(sc: SparkContext, textRDD: RDD[(Long, String)], vocabSize: Int): DataFrame = {
     val sqlContext = SQLContext.getOrCreate(sc)
 
     import sqlContext.implicits._
 
-    val df = textRDD.toDF("docs")
+    val df = textRDD.toDF("id", "docs")
 
     val tokenizer = new RegexTokenizer()
       .setMinTokenLength(2)
@@ -72,7 +72,7 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param filteredTokens 过滤后的tokens,作为输入数据
     * @param trainTokens 过滤后的tokens，用于cvModel模型训练
     * @param vocabSize  词汇表大小
-    * @return
+    * @return (文档向量，词汇表，tokens总数)
     */
   def featureToVector(filteredTokens: DataFrame, trainTokens: DataFrame, vocabSize: Int): (RDD[(Long, Vector)], Array[String], Long) = {
     val cvModel = new CountVectorizer()
@@ -81,10 +81,9 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
       .setVocabSize(vocabSize)
       .fit(trainTokens)
     val documents = cvModel.transform(filteredTokens)
-      .select("features")
-      .map { case Row(features: Vector) => features }
-      .zipWithIndex()
-      .map(_.swap)
+      .select("id", "features")
+      .map { case Row(id: Long, features: Vector) => (id, features)}
+
     (documents, cvModel.vocabulary, documents.map(_._2.numActives).sum().toLong)
   }
 
@@ -114,7 +113,7 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param rdd  输入数据
     * @return (LDAModel, 词汇表)
     */
-  def train(sc: SparkContext, rdd: RDD[String]): (LDAModel, RDD[String], RDD[(Long, Vector)], DataFrame) = {
+  def train(sc: SparkContext, rdd: RDD[(Long, String)]): (LDAModel, RDD[String], RDD[(Long, Vector)], DataFrame) = {
     val k = config.k
     val maxIterations = config.maxIterations
     val vocabSize = config.vocabSize
@@ -190,13 +189,31 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
 
 
   /**
+    * LDA新文档预测
+    * @param sc SparkContext
+    * @param rdd  输入数据
+    * @param ldaModel  模型
+    * @param trainTokens  训练数据tokens
+    * @return (doc-topics, topic-words)
+    */
+  def predict(sc: SparkContext, rdd: RDD[(Long, String)], ldaModel: LDAModel, trainTokens: DataFrame): (RDD[(Long, Vector)], Array[Array[(String, Double)]]) = {
+    val vocabSize = ldaModel.vocabSize
+    val tokens = splitLine(sc, rdd, vocabSize)
+    val (documents, vocabRDD, _) = featureToVector(tokens, trainTokens, vocabSize)
+    val docTopics: RDD[(Long, Vector)] = calcDocTopics(ldaModel, documents)
+    val topicWords: Array[Array[(String, Double)]] = calcTopicWords(ldaModel, vocabRDD)
+    (docTopics, topicWords)
+  }
+
+
+  /**
     * 主题描述，包括主题下每个词以及词的权重
     *
     * @param ldaModel LDAModel
     * @param vocabArray 词汇表
     * @return 主题-词结果
     */
-  def topicWords(ldaModel: LDAModel, vocabArray: Array[String]): Array[Array[(String, Double)]] = {
+  def calcTopicWords(ldaModel: LDAModel, vocabArray: Array[String]): Array[Array[(String, Double)]] = {
     val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 20)
     topicIndices.map { case (terms, termWeights) =>
       terms.zip(termWeights).map { case (term, weight) => (vocabArray(term.toInt), weight) }
@@ -210,7 +227,7 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param corpus  文档
     * @return “文档-主题分布”：(docID, topicDistributions)
     */
-  def docTopics(ldaModel: LDAModel, corpus: RDD[(Long, Vector)]): RDD[(Long, Vector)] = {
+  def calcDocTopics(ldaModel: LDAModel, corpus: RDD[(Long, Vector)]): RDD[(Long, Vector)] = {
     var topicDistributions: RDD[(Long, Vector)] = null
     ldaModel match {
       case distLDAModel: DistributedLDAModel =>
@@ -232,7 +249,7 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param ldaModel LDAModel
     * @param tokens 词汇表：(index, word)
     */
-  def saveModel(sc: SparkContext, modelPath: String, ldaModel: LDAModel, vocaRDD: RDD[String], tokens: DataFrame): Unit = {
+  def saveModel(sc: SparkContext, modelPath: String, ldaModel: LDAModel, tokens: DataFrame): Unit = {
     ldaModel match {
       case distModel: DistributedLDAModel =>
         distModel.toLocal.save(sc, modelPath + File.separator + "model")
@@ -242,23 +259,22 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
         println("保存模型出错！")
     }
     tokens.write.parquet(modelPath + File.separator + "tokens")
-    vocaRDD.saveAsTextFile(modelPath + File.separator + "vocab")
   }
 
 
   /**
     * 加载模型和tokens
+ *
     * @param sc SparkContext
     * @param modelPath  模型路径
     * @return (LDAModel, tokens)
     */
-  def loadModel(sc: SparkContext, modelPath:String): (LDAModel, DataFrame, RDD[String]) = {
+  def loadModel(sc: SparkContext, modelPath:String): (LDAModel, DataFrame) = {
     val sqlContext = SQLContext.getOrCreate(sc)
 
     val ldaModel = LocalLDAModel.load(sc, modelPath + File.separator + "model")
     val tokens = sqlContext.read.parquet(modelPath + File.separator + "tokens")
-    val vocabRDD = sc.textFile(modelPath + File.separator + "vocab")
-    (ldaModel, tokens, vocabRDD)
+    (ldaModel, tokens)
   }
 
 }

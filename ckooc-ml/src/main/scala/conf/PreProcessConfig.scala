@@ -6,24 +6,23 @@ import java.util.Properties
 import org.apache.commons.lang3.BooleanUtils
 import org.apache.commons.lang3.math.NumberUtils
 import org.apache.spark.Logging
-import utils.PreProcessUtils
 
 /**
  * NLP数据预处理配置类
  */
 case class PreProcessConfig(f2j: Boolean, q2b: Boolean, delNum: Boolean, numToChar: String, delEn: Boolean,
-                            delStopword: Boolean, minLineLen: Int, toSentence: Boolean,
-                            splitWord: Boolean, oneGram: Boolean, minTermSize: Int, minTermNum: Int,
-                            delRareTerm: Boolean, rareTermNum: Int, toParagraphs: Boolean, paragraphSeparator: String)
+                            delStopword: Boolean, splitWord: Boolean, oneGram: Boolean,
+                            minTermSize: Int, minTermNum: Int, delRareTerm: Boolean, rareTermNum: Int,
+                            toParagraphs: Boolean, paragraphSeparator: String, stopwordPath: String)
 
 object PreProcessConfig extends Logging {
 
   /**
     * 参数列表
     */
-  val PARAMS = List("f2j", "q2b", "delNum", "delEn", "delStopword", "minLineLen",
-    "toSentence", "splitWord", "minTermSize", "minTermNum", "delRareTerm",
-    "rareTermNum", "toParagraphs", "paragraphSeparator", "numToChar", "oneGram")
+  val PARAMS = List("f2j", "q2b", "delNum", "delEn", "delStopword",
+    "splitWord", "minTermSize", "minTermNum", "delRareTerm",
+    "rareTermNum", "toParagraphs", "paragraphSeparator", "numToChar", "oneGram", "stopwordPath")
 
   /**
     * 根据Properties配置文件返回一个Config对象
@@ -39,8 +38,6 @@ object PreProcessConfig extends Logging {
     val delNum = BooleanUtils.toBoolean(if (prop.getProperty("delNum") == null) "false" else prop.getProperty("delNum"))
     val delEn = BooleanUtils.toBoolean(if (prop.getProperty("delEn") == null) "false" else prop.getProperty("delEn"))
     val delStopword = BooleanUtils.toBoolean(if (prop.getProperty("delStopword") == null) "false" else prop.getProperty("delStopword"))
-    val minLineLen = NumberUtils.toInt(prop.getProperty("minLineLen"), 20)
-    val toSentence = BooleanUtils.toBoolean(if (prop.getProperty("toSentence") == null) "false" else prop.getProperty("toSentence"))
     val splitWord = BooleanUtils.toBoolean(if (prop.getProperty("splitWord") == null) "false" else prop.getProperty("splitWord"))
     val minTermSize = NumberUtils.toInt(prop.getProperty("minTermSize"), 1)
     val minTermNum = NumberUtils.toInt(prop.getProperty("minTermNum"), 10)
@@ -50,7 +47,8 @@ object PreProcessConfig extends Logging {
     val paragraphSeparator = if (prop.getProperty("paragraphSeparator") == null) "		" else prop.getProperty("paragraphSeparator").replaceAll("<|>", "")
     val numToChar = prop.getProperty("numToChar", "")
     val oneGram = BooleanUtils.toBoolean(if (prop.getProperty("oneGram") == null) "false" else prop.getProperty("oneGram"))
-    new PreProcessConfig(f2j, q2b, delNum, numToChar, delEn, delStopword, minLineLen, toSentence, splitWord, oneGram, minTermSize, minTermNum, delRareTerm, rareTermNum, toParagraphs, paragraphSeparator)
+    val stopwordPath = prop.getProperty("stopwordPath", "")
+    new PreProcessConfig(f2j, q2b, delNum, numToChar, delEn, delStopword, splitWord, oneGram, minTermSize, minTermNum, delRareTerm, rareTermNum, toParagraphs, paragraphSeparator, stopwordPath)
   }
 
   /**
@@ -116,9 +114,5 @@ object PreProcessConfig extends Logging {
     }
   }
 
-  def main(args: Array[String]) {
-    val datap = PreProcessUtils()
-    val config = PreProcessConfig("config/ml-config.properties")
-  }
 }
 

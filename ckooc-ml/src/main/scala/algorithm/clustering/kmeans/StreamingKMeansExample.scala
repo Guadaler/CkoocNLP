@@ -16,7 +16,7 @@
  */
 
 // scalastyle:off println
-package ml.clustering.kmeans
+package algorithm.clustering.kmeans
 
 import org.apache.spark.SparkConf
 import org.apache.spark.mllib.clustering.StreamingKMeans
