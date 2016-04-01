@@ -17,6 +17,7 @@ import scala.util.Sorting
   *   <p>6. 计算左右熵
   *   <p>7. 整合互信息和左右熵（join）
   *   <p>8. 去掉短语两边的标点
+  *   <p>9. 结果与词典进行过滤
   *
   * <p>Created by yhao on 2016/3/8.
   */
