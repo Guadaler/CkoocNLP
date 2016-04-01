@@ -102,3 +102,5 @@ LDA模型训练性能记录
 `问题标识`,`分词后的标题+内容`<br>
 切分符：`|`<br>
 输入文件位置：data/sample_split_data1.txt、data/sample_split_data2.txt
+
+**新词发现代码还未进行优化！**
