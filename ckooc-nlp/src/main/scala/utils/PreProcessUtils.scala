@@ -320,7 +320,7 @@ object PreProcessUtils extends Logging {
     val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local")
     val sc = new SparkContext(conf)
 
-    val args = Array("ckooc-nlp/data/preprocess_sample_data.txt", "", "\u00EF")
+    val args = Array("data/sample_data2.txt", "data/preprocess_result.txt", "\u00EF")
 
     val preUtils = PreProcessUtils("ckooc-nlp/config/preprocess.properties")
 
@@ -341,7 +341,7 @@ object PreProcessUtils extends Logging {
 
     //--本地测试使用：写入本地文件
     val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" ")).collect()
-    val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("ckooc-ml/data/preprocess_result.txt")))
+    val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)))
     for (line <- result) {
       bw.write(line + "\n")
     }

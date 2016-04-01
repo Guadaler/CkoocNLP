@@ -22,7 +22,7 @@ object LDAPredictDemo {
 
     val ldaUtils = LDAUtils("ckooc-ml/config/lda.properties")
 
-    val args = Array("ckooc-ml/data/preprocess_result.txt", "G:/test/LDAModel", "G:/test/result")
+    val args = Array("data/preprocess_result.txt", "G:/test/LDAModel", "G:/test/result")
 
     val inFile = args(0)
     val modelPath = args(1)

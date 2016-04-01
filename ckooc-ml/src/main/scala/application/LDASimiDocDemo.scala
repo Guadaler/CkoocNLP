@@ -54,7 +54,7 @@ object LDASimiDocDemo {
 
     val ldaUtils = LDAUtils("ckooc-ml/config/lda.properties")
 
-    val args = Array("ckooc-ml/data/simiDoc_sample1.txt", "ckooc-ml/data/simiDoc_sample2.txt", "G:/test/LDAModel", "G:/test/result")
+    val args = Array("data/sample_split_data1.txt", "data/sample_split_data2.txt", "G:/test/LDAModel", "G:/test/result")
 
 
     val inFile1 = args(0)
