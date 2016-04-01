@@ -1,4 +1,4 @@
-package algorithm.utils
+package utils
 
 import java.io._
 

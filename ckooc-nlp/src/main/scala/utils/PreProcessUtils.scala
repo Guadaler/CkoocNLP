@@ -1,10 +1,9 @@
-package algorithm.utils
+package utils
 
 import java.io._
 import java.util
 import java.util.Properties
 
-import algorithm.utils.chinese.ZHConverter
 import com.hankcs.hanlp.HanLP
 import conf.PreProcessConfig
 import org.ansj.domain.Term
@@ -14,6 +13,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{Logging, SparkConf, SparkContext}
+import utils.chinese.ZHConverter
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -314,15 +314,15 @@ object PreProcessUtils extends Logging {
 
 
   def main(args: Array[String]) {
-    val preUtils = PreProcessUtils("config/preprocess.properties")
+    //设置log等级为WARN
+    Logger.getRootLogger.setLevel(Level.WARN)
 
     val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local")
     val sc = new SparkContext(conf)
 
-    //设置log等级为WARN
-    Logger.getRootLogger.setLevel(Level.WARN)
+    val args = Array("ckooc-nlp/data/preprocess_sample_data.txt", "", "\u00EF")
 
-    val args = Array("data/preprocess_sample_data.txt", "", "\u00EF")
+    val preUtils = PreProcessUtils("ckooc-nlp/config/preprocess.properties")
 
     val inFile = args(0)
     val outFile = args(1)
@@ -341,7 +341,7 @@ object PreProcessUtils extends Logging {
 
     //--本地测试使用：写入本地文件
     val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" ")).collect()
-    val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("data/preprocess_result.txt")))
+    val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("ckooc-ml/data/preprocess_result.txt")))
     for (line <- result) {
       bw.write(line + "\n")
     }

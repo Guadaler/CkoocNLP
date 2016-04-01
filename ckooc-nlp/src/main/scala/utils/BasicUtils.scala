@@ -1,4 +1,4 @@
-package algorithm.utils
+package utils
 
 /**
   * Created by yhao on 2016/3/28.

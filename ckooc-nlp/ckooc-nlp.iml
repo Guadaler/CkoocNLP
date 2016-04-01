@@ -6,6 +6,8 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/scala" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/test" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
@@ -191,5 +193,6 @@
     <orderEntry type="library" name="Maven: com.sun.xml.bind:jaxb-impl:2.2.7" level="project" />
     <orderEntry type="library" name="Maven: com.sun.xml.bind:jaxb-core:2.2.7" level="project" />
     <orderEntry type="library" name="Maven: com.github.scopt:scopt_2.10:3.3.0" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.10.4" level="application" />
   </component>
 </module>

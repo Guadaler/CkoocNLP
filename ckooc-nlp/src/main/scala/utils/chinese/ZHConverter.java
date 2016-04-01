@@ -1,4 +1,4 @@
-package algorithm.utils.chinese;
+package utils.chinese;
 
 import java.io.*;
 import java.util.HashMap;
