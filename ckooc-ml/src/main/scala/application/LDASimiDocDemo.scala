@@ -1,6 +1,6 @@
 package application
 
-import java.io.{File, FileOutputStream, OutputStreamWriter, BufferedWriter}
+import java.io.{BufferedWriter, File, FileOutputStream, OutputStreamWriter}
 
 import algorithm.utils.{DistanceUtils, LDAUtils}
 import org.apache.log4j.{Level, Logger}
@@ -29,6 +29,11 @@ object LDASimiDocDemo {
     dist
   }
 
+  /**
+    * 保存结果
+    * @param dists  结果集
+    * @param outFile  要保存的文件路径
+    */
   def saveReasult(dists: RDD[(Long, Array[(Long, Double)])], outFile: String) = {
     val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile + File.separator + "simiDocs.txt")))
     dists.collect().foreach(doc => {
@@ -40,17 +45,21 @@ object LDASimiDocDemo {
     bw.close()
   }
 
+
   def main(args: Array[String]) {
     Logger.getRootLogger.setLevel(Level.WARN)
 
     val conf = new SparkConf().setAppName("SimiDocDemo").setMaster("local[2]")
     val sc = new SparkContext(conf)
 
-    val ldaUtils = LDAUtils("config/lda.properties")
+    val ldaUtils = LDAUtils("ckooc-ml/config/lda.properties")
 
-    val modelPath = args(0)
-    val inFile1 = args(1)
-    val inFile2 = args(2)
+    val args = Array("ckooc-ml/data/simiDoc_sample1.txt", "ckooc-ml/data/simiDoc_sample2.txt", "G:/test/LDAModel", "G:/test/result")
+
+
+    val inFile1 = args(0)
+    val inFile2 = args(1)
+    val modelPath = args(2)
     val outFile = args(3)
 
 
