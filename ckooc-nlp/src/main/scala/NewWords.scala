@@ -309,7 +309,7 @@ object NewWords {
     val sc = new SparkContext(conf)
     // 获取参数
 
-    val args = Array("5", "2", "0", "0", "data/sample_data1.txt", "data/sample_data2.txt", "library/dictionary-all.dic")
+    val args = Array("5", "2", "5", "0.0001", "data/sample_data1.txt", "data/sample_data2.txt", "library/dictionary-all.dic")
 
     val wordLength : Int = args(0).toInt   // 最长短语长度
     val frequencyThreshold : Int = args(1).toInt   // 最小词频阈值

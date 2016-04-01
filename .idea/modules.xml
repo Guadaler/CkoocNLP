@@ -5,8 +5,6 @@
       <module fileurl="file://$PROJECT_DIR$/CkoocNLP.iml" filepath="$PROJECT_DIR$/CkoocNLP.iml" />
       <module fileurl="file://$PROJECT_DIR$/ckooc-ml/ckooc-ml.iml" filepath="$PROJECT_DIR$/ckooc-ml/ckooc-ml.iml" />
       <module fileurl="file://$PROJECT_DIR$/ckooc-nlp/ckooc-nlp.iml" filepath="$PROJECT_DIR$/ckooc-nlp/ckooc-nlp.iml" />
-      <module fileurl="file://$PROJECT_DIR$/ckooc-preprocess/ckooc-preprocess.iml" filepath="$PROJECT_DIR$/ckooc-preprocess/ckooc-preprocess.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../HanLP/hanlp.iml" filepath="$PROJECT_DIR$/../HanLP/hanlp.iml" />
     </modules>
   </component>
 </project>

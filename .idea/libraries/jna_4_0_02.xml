@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="jna-4.0.02">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/../NLPIR/NLPIR SDK/RedupRemover/projects/RedupRemover_java/lib/jna-4.0.0.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
