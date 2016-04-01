@@ -16,9 +16,9 @@ object LDATrainDemo {
     val sc = new SparkContext(conf)
 
     //加载配置文件
-    val ldaUtils = LDAUtils("config/lda.properties")
+    val ldaUtils = LDAUtils("ckooc-ml/config/lda.properties")
 
-    val args = Array("data/preprocess_result.txt", "G:/test/LDAModel")
+    val args = Array("ckooc-ml/data/preprocess_result.txt", "G:/test/LDAModel")
 
     val inFile = args(0)
     val outFile = args(1)
