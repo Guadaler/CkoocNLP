@@ -246,7 +246,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     val paragraphSeparator = config.paragraphSeparator
     val numToChar = config.numToChar
 
-    var contentRDD = rdd
+    val contentRDD = rdd
 
     //是否分段
     /*if (toParagraphs) {
@@ -260,6 +260,8 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
     var resultRDD = contentRDD.map(str => (str._1, baseCleanFunc(str._2, delNum, numToChar, delEn))).map{line =>
       (line._1, wordSegment(line._2, delStopword, minTermSize, minTermNum, broadStopword.value))
     }.filter(_._2.nonEmpty).map(line => (line._1, line._2.get))
+
+    broadStopword.destroy()
 
     //去除低频词
     if (config.delRareTerm) {
@@ -304,11 +306,12 @@ object PreProcessUtils extends Logging {
     val tokens = line.split(sep)
     val content = new Array[String](fieldNum.length)
     if (tokens.length == cols) {
-      for (i <- fieldNum.indices) {
-        content(i) = tokens(fieldNum(i))
+      if (tokens(0).length < 9) {
+        for (i <- fieldNum.indices) {
+          content(i) = tokens(fieldNum(i))
+        }
       }
     }
-
     content
   }
 
@@ -317,40 +320,59 @@ object PreProcessUtils extends Logging {
     //设置log等级为WARN
     Logger.getRootLogger.setLevel(Level.WARN)
 
-    val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local")
+    val conf = new SparkConf().setAppName("DataPreProcess")//.setMaster("local")
     val sc = new SparkContext(conf)
 
-    val args = Array("data/sample_data2.txt", "data/preprocess_result.txt", "\u00EF")
+//    val args = Array("data/sample_data2.txt", "data/preprocess_result.txt", "baike")
+//    val args = Array("G:/data/baike/baike.txt", "G:/test/baike_result.txt", "baike")
 
-    val preUtils = PreProcessUtils("ckooc-nlp/config/preprocess.properties")
+    val preUtils = PreProcessUtils("config/preprocess.properties")
 
     val inFile = args(0)
     val outFile = args(1)
-    val sep = args(2)
+    val dataType = args(2)
 
-    //提取指定字段的数据(id, title, content)
-    val extractRDD = sc.textFile(inFile).map(line => contentExtract(line, 14, sep, 0, 6, 13)).filter(line => line(2) != null)
+    val sep = "\u00EF"
 
-    //合并字段内容(title+content)
-    val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(1) + tokens(2)))
-//    val extractRDD = sc.textFile(inFile).map(line => contentExtract(line, 6, sep, 0, 1, 5)).filter(line => line(2) != null)
-//    val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(2)))
+    var splitedRDD: RDD[(Long, scala.Seq[String])] = null
 
-    //分词等预处理，得到分词后的结果
-    val splitedRDD = preUtils.runPreProcess(sc, textRDD)
+    if (dataType == "zhihu") {
+      //提取指定字段的数据(id, title, content)
+      val extractRDD = sc.textFile(inFile).map(line => contentExtract(line, 14, sep, 0, 6, 13)).filter(line => line(2) != null)
+
+      //合并字段内容(title+content)
+      val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(1) + tokens(2)))
+
+      //分词等预处理，得到分词后的结果
+      splitedRDD = preUtils.runPreProcess(sc, textRDD)
+    } else if (dataType == "baike") {
+      //提取指定字段的数据(id, title, content)
+      val text = sc.textFile(inFile)
+
+      val extractRDD = text.map(line => contentExtract(line, 6, sep, 0, 4, 5)).filter(line => line(2) != null)
+
+      //合并字段内容(title+content)
+      val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(1) + tokens(2)))
+
+      //分词等预处理，得到分词后的结果
+      splitedRDD = preUtils.runPreProcess(sc, textRDD)
+    } else {
+      println("数据类型不对！")
+      sys.exit()
+    }
+
 
     //--本地测试使用：写入本地文件
-    val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" ")).collect()
+    /*val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" ")).collect()
     val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)))
     for (line <- result) {
       bw.write(line + "\n")
     }
-    bw.close()
-
+    bw.close()*/
 
     //--集群使用：写入HDFS指定路径
-    /*val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" "))
-    result.saveAsTextFile(args(1))*/
+    val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" "))
+    result.saveAsTextFile(outFile)
 
     sc.stop()
   }
