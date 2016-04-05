@@ -4,6 +4,7 @@ import java.io.File
 import java.util.Properties
 
 import conf.LDAConfig
+import org.apache.hadoop.fs.Path
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{CountVectorizer, RegexTokenizer}
 import org.apache.spark.mllib.clustering._
@@ -16,6 +17,31 @@ import org.apache.spark.{Logging, SparkContext}
   * Created by yhao on 2016/1/20.
   */
 class LDAUtils(config: LDAConfig) extends Logging with Serializable {
+
+  /**
+    * 对sc的textFile方法的封装，可以按指定的最小块进行切分读取
+    * @param sc SparkContext
+    * @param inPath 输入路径
+    * @param minSize  最小块大小
+    * @return RDD[String]
+    */
+  def getText(sc: SparkContext, inPath: String, minSize: Int): RDD[String] = {
+    val hadoopConf = sc.hadoopConfiguration
+    val fs = new Path(inPath).getFileSystem(hadoopConf)
+    val len = fs.getContentSummary(new Path(inPath)).getLength / (1024 * 1024) //以MB为单位的数据大小
+    val minPart = math.ceil(len / minSize) //按minSize的分块数
+
+    var textRDD: RDD[String] = null
+
+    if (minPart > 1) {
+      textRDD = sc.textFile(inPath, minPart.toInt)
+    } else {
+      textRDD = sc.textFile(inPath)
+    }
+
+    textRDD
+  }
+
 
   /**
     * 选择算法

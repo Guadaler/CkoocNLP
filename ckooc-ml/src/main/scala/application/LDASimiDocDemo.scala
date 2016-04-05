@@ -52,9 +52,9 @@ object LDASimiDocDemo {
     val conf = new SparkConf().setAppName("SimiDocDemo").setMaster("local[2]")
     val sc = new SparkContext(conf)
 
-    val ldaUtils = LDAUtils("ckooc-ml/config/lda.properties")
+    val ldaUtils = LDAUtils("config/lda.properties")
 
-    val args = Array("data/sample_split_data1.txt", "data/sample_split_data2.txt", "G:/test/LDAModel", "G:/test/result")
+    val args = Array("../ckooc-nlp/data/sample_split_data1.txt", "../ckooc-nlp/data/sample_split_data2.txt", "G:/test/LDAModel", "G:/test/result")
 
 
     val inFile1 = args(0)
@@ -63,8 +63,8 @@ object LDASimiDocDemo {
     val outFile = args(3)
 
 
-    val text1RDD = sc.textFile(inFile1).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
-    val text2RDD = sc.textFile(inFile2).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
+    val text1RDD = ldaUtils.getText(sc, inFile1, 36).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
+    val text2RDD = ldaUtils.getText(sc, inFile2, 36).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
 
     val (ldaModel, trainTokens) = ldaUtils.loadModel(sc, modelPath)
 

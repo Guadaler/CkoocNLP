@@ -20,16 +20,16 @@ object LDAPredictDemo {
     val conf = new SparkConf().setAppName("LDA-Predict").setMaster("local[2]")
     val sc = new SparkContext(conf)
 
-    val ldaUtils = LDAUtils("ckooc-ml/config/lda.properties")
+    val ldaUtils = LDAUtils("config/lda.properties")
 
-    val args = Array("data/preprocess_result.txt", "G:/test/LDAModel", "G:/test/result")
+    val args = Array("../ckooc-nlp/data/preprocess_result.txt", "G:/test/LDAModel", "G:/test/result")
 
     val inFile = args(0)
     val modelPath = args(1)
     val outFile = args(2)
 
     //切分数据
-    val textRDD = sc.textFile(inFile).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
+    val textRDD = ldaUtils.getText(sc, inFile, 36).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
 
     //加载LDAModel
     val (ldaModel, trainTokens) = ldaUtils.loadModel(sc, modelPath)

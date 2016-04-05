@@ -16,15 +16,16 @@ object LDATrainDemo {
     val sc = new SparkContext(conf)
 
     //加载配置文件
-    val ldaUtils = LDAUtils("ckooc-ml/config/lda.properties")
+    val ldaUtils = LDAUtils("config/lda.properties")
 
-    val args = Array("data/preprocess_result.txt", "G:/test/LDAModel")
+    val args = Array("../ckooc-nlp/data/preprocess_result.txt", "G:/test/LDAModel")
 
     val inFile = args(0)
     val outFile = args(1)
 
+
     //切分数据
-    val textRDD = sc.textFile(inFile).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
+    val textRDD = ldaUtils.getText(sc, inFile, 36).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
 
     //训练模型
     val (ldaModel, vocabulary, documents, tokens) = ldaUtils.train(sc, textRDD)
