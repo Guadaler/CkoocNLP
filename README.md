@@ -62,6 +62,17 @@ LDA新文档预测
 切分符：`|`<br>
 输入文件位置：data/preprocess_result.txt
 
+**模型下载**已经在Windows下训练出一个可以用于测试的LDA模型，因为比较大，需要单独下载，解压放入ckooc-ml下models目录中即可
+模型说明：
+>
+* docNum=50000（知乎问题数据）
+* K=200
+* maxIterations=40
+* vocabSize=10000
+* algorithm=em
+
+模型下载地址：[http://pan.baidu.com/s/1slcLdr3](http://pan.baidu.com/s/1slcLdr3) 密码：ir0e
+
 相似文档查找
 ----------
 [相似文档查找](https://github.com/yhao2014/CkoocNLP/blob/master/ckooc-ml/src/main/scala/application/LDASimiDocDemo.scala)
