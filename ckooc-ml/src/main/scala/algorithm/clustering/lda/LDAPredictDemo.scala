@@ -22,11 +22,16 @@ object LDAPredictDemo {
 
     val ldaUtils = LDAUtils("config/lda.properties")
 
-    val args = Array("../ckooc-nlp/data/preprocess_result.txt", "G:/test/LDAModel", "G:/test/result")
+    val args = Array("../ckooc-nlp/data/preprocess_result.txt", "models/ldaModel", "G:/test/result")
+
+    if (args.length != 3) {
+      println("Usage: <inFile> <modelPath> <outPath>")
+      sys.exit(1)
+    }
 
     val inFile = args(0)
     val modelPath = args(1)
-    val outFile = args(2)
+    val outPath = args(2)
 
     //切分数据
     val textRDD = ldaUtils.getText(sc, inFile, 36).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
@@ -35,11 +40,12 @@ object LDAPredictDemo {
     val (ldaModel, trainTokens) = ldaUtils.loadModel(sc, modelPath)
 
     //预测文档，得到“文档-主题分布”和“主题-词”结果
-    val (docTopics, topicWords) = ldaUtils.predict(sc, textRDD, ldaModel, trainTokens)
+    val (docTopics, topicWords) = ldaUtils.predict(sc, textRDD, ldaModel, trainTokens, sorted = true)
 
     println("文档-主题分布：")
     docTopics.collect().foreach(doc => {
-      println(doc._1 + ": " + doc._2)
+      val docTopicsArray = doc._2.map(topic => topic._1 + ":" + topic._2)
+      println(doc._1 + ": [" + docTopicsArray.mkString(",") + "]")
     })
 
     println("主题-词：")
@@ -52,7 +58,7 @@ object LDAPredictDemo {
     })
 
     //保存结果
-    saveReasult(docTopics, topicWords, outFile)
+    saveReasult(docTopics, topicWords, outPath)
 
     sc.stop()
   }
@@ -64,12 +70,13 @@ object LDAPredictDemo {
     * @param topicWords 主题-词
     * @param outFile  输出路径
     */
-  def saveReasult(docTopics: RDD[(Long, Vector)], topicWords: Array[Array[(String, Double)]], outFile: String): Unit = {
+  def saveReasult(docTopics: RDD[(Long, Array[(Double, Int)])], topicWords: Array[Array[(String, Double)]], outFile: String): Unit = {
     val bw1 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile + File.separator + "docTopics.txt")))
     val bw2 = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile + File.separator + "topicWords.txt")))
 
     docTopics.collect().foreach(doc => {
-      bw1.write(doc._1 + ": " + doc._2 + "\n")
+      val docTopicsArray = doc._2.map(topic => topic._1 + ":" + topic._2)
+      bw1.write(doc._1 + ": [" + docTopicsArray.mkString(",") + "]\n")
     })
 
     topicWords.zipWithIndex.foreach(topic => {

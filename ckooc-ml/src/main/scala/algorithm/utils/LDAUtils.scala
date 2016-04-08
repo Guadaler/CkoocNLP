@@ -8,10 +8,13 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{CountVectorizer, RegexTokenizer}
 import org.apache.spark.mllib.clustering._
-import org.apache.spark.mllib.linalg.Vector
+import org.apache.spark.mllib.linalg.{Matrix, Vector}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 import org.apache.spark.{Logging, SparkContext}
+
+import scala.util.Sorting
+
 
 /**
   * Created by yhao on 2016/1/20.
@@ -20,6 +23,7 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
 
   /**
     * 对sc的textFile方法的封装，可以按指定的最小块进行切分读取
+ *
     * @param sc SparkContext
     * @param inPath 输入路径
     * @param minSize  最小块大小
@@ -223,12 +227,19 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param trainTokens 训练数据tokens
     * @return (doc-topics, topic-words)
     */
-  def predict(sc: SparkContext, rdd: RDD[(Long, String)], ldaModel: LDAModel, trainTokens: DataFrame): (RDD[(Long, Vector)], Array[Array[(String, Double)]]) = {
+  def predict(sc: SparkContext, rdd: RDD[(Long, String)], ldaModel: LDAModel, trainTokens: DataFrame, sorted: Boolean = false): (RDD[(Long, Array[(Double, Int)])], Array[Array[(String, Double)]]) = {
     val vocabSize = ldaModel.vocabSize
     val tokens = splitLine(sc, rdd, vocabSize)
     val (documents, vocabRDD, _) = featureToVector(tokens, trainTokens, vocabSize)
-    val docTopics: RDD[(Long, Vector)] = calcDocTopics(ldaModel, documents)
-    val topicWords: Array[Array[(String, Double)]] = calcTopicWords(ldaModel, vocabRDD)
+    var docTopics: RDD[(Long, Array[(Double, Int)])] = null
+
+    if (sorted) {
+      docTopics = getSortedDocTopics(ldaModel, documents, sorted)
+    } else {
+      docTopics = getDocTopics(ldaModel, documents).map(doc => (doc._1, doc._2.toArray.zipWithIndex))
+    }
+
+    val topicWords: Array[Array[(String, Double)]] = getTopicWords(ldaModel, vocabRDD)
     (docTopics, topicWords)
   }
 
@@ -240,7 +251,7 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param vocabArray 词汇表
     * @return 主题-词结果
     */
-  def calcTopicWords(ldaModel: LDAModel, vocabArray: Array[String]): Array[Array[(String, Double)]] = {
+  def getTopicWords(ldaModel: LDAModel, vocabArray: Array[String]): Array[Array[(String, Double)]] = {
     val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 20)
     topicIndices.map { case (terms, termWeights) =>
       terms.zip(termWeights).map { case (term, weight) => (vocabArray(term.toInt), weight) }
@@ -254,18 +265,42 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param corpus   文档
     * @return “文档-主题分布”：(docID, topicDistributions)
     */
-  def calcDocTopics(ldaModel: LDAModel, corpus: RDD[(Long, Vector)]): RDD[(Long, Vector)] = {
+  def getDocTopics(ldaModel: LDAModel, corpus: RDD[(Long, Vector)]): RDD[(Long, Vector)] = {
     var topicDistributions: RDD[(Long, Vector)] = null
     ldaModel match {
       case distLDAModel: DistributedLDAModel =>
         topicDistributions = distLDAModel.toLocal.topicDistributions(corpus)
-      //        topicDistributions = distLDAModel.topicDistributions
       case localLDAModel: LocalLDAModel =>
         topicDistributions = localLDAModel.topicDistributions(corpus)
       case _ =>
     }
 
     topicDistributions
+  }
+
+
+  /**
+    * 排序后的文档-主题分布结果
+    * @param ldaModel LDAModel
+    * @param corpus 文档
+    * @param desc 是否降序
+    * @return 排序后的“文档-主题分布”：(docID, sortedDist)
+    */
+  def getSortedDocTopics(ldaModel: LDAModel, corpus: RDD[(Long, Vector)], desc: Boolean = true): RDD[(Long, Array[(Double, Int)])] = {
+    var topicDistributions: RDD[(Long, Vector)] = null
+    ldaModel match {
+      case distLDAModel: DistributedLDAModel =>
+        topicDistributions = distLDAModel.toLocal.topicDistributions(corpus)
+      case localLDAModel: LocalLDAModel =>
+        topicDistributions = localLDAModel.topicDistributions(corpus)
+      case _ =>
+    }
+    val indexedDist = topicDistributions.map(doc => (doc._1, doc._2.toArray.zipWithIndex))
+    if (desc) {
+      indexedDist.map(doc => (doc._1, doc._2.sortWith(_._1 > _._1)))
+    } else {
+      indexedDist.map(doc => (doc._1, doc._2.sortWith(_._1 < _._1)))
+    }
   }
 
 

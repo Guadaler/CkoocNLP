@@ -12,13 +12,13 @@ object LDATrainDemo {
   def main(args: Array[String]) {
     Logger.getRootLogger.setLevel(Level.WARN)
 
-    val conf = new SparkConf().setAppName("LDATrain").setMaster("local")
+    val conf = new SparkConf().setAppName("LDATrain").setMaster("local[2]")
     val sc = new SparkContext(conf)
 
     //加载配置文件
     val ldaUtils = LDAUtils("config/lda.properties")
 
-    val args = Array("../ckooc-nlp/data/preprocess_result.txt", "G:/test/LDAModel")
+    val args = Array("../ckooc-nlp/data/preprocess_result.txt", "models/ldaModel")
 
     val inFile = args(0)
     val outFile = args(1)
@@ -31,7 +31,7 @@ object LDATrainDemo {
     val (ldaModel, vocabulary, documents, tokens) = ldaUtils.train(sc, textRDD)
 
     //计算“文档-主题分布”
-    val docTopics: RDD[(Long, Vector)] = ldaUtils.calcDocTopics(ldaModel, documents)
+    val docTopics: RDD[(Long, Vector)] = ldaUtils.getDocTopics(ldaModel, documents)
 
     println("文档-主题分布：")
     docTopics.collect().foreach(doc => {
@@ -39,7 +39,7 @@ object LDATrainDemo {
     })
 
     //计算“主题-词”
-    val topicWords: Array[Array[(String, Double)]] = ldaUtils.calcTopicWords(ldaModel, vocabulary.collect())
+    val topicWords: Array[Array[(String, Double)]] = ldaUtils.getTopicWords(ldaModel, vocabulary.collect())
     println("主题-词：")
     topicWords.zipWithIndex.foreach(topic => {
       println("Topic: " + topic._2)

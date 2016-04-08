@@ -68,18 +68,18 @@ object LDASimiDocDemo {
 
     val (ldaModel, trainTokens) = ldaUtils.loadModel(sc, modelPath)
 
-    val docTopics1 = ldaUtils.predict(sc, text1RDD, ldaModel, trainTokens)._1
-    val docTopics2 = ldaUtils.predict(sc, text2RDD, ldaModel, trainTokens)._1.collect()
+    val docTopics1 = ldaUtils.predict(sc, text1RDD, ldaModel, trainTokens)._1.map(doc => (doc._1, doc._2.map(_._1)))
+    val docTopics2 = ldaUtils.predict(sc, text2RDD, ldaModel, trainTokens)._1.map(doc => (doc._1, doc._2.map(_._1))).collect()
 
     val broadDT = sc.broadcast(docTopics2)
 
     val dists = docTopics1.map(doc => {
-      val docVector = doc._2.toArray.toVector
+      val docVector = doc._2.toVector
       val distBuffer = new ArrayBuffer[(Long, Double)]()
       val docArray = broadDT.value
 
       for (line <- docArray) {
-        val lineVector = line._2.toArray.toVector
+        val lineVector = line._2.toVector
         distBuffer += ((line._1, calcDistance(docVector, lineVector)))
       }
       (doc._1, distBuffer.toArray.sortWith(_._2 > _._2))
