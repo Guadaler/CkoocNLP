@@ -8,12 +8,10 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{CountVectorizer, RegexTokenizer}
 import org.apache.spark.mllib.clustering._
-import org.apache.spark.mllib.linalg.{Matrix, Vector}
+import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 import org.apache.spark.{Logging, SparkContext}
-
-import scala.util.Sorting
 
 
 /**
@@ -70,12 +68,12 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
   /**
     * 读取数据文件(已分词)，切分
     *
-    * @param sc        SparkContext
     * @param textRDD   数据(已分词)
     * @param vocabSize 词汇表大小
     * @return (corpus, vocabArray, actualNumTokens)
     */
-  def splitLine(sc: SparkContext, textRDD: RDD[(Long, String)], vocabSize: Int): DataFrame = {
+  def splitLine(textRDD: RDD[(Long, String)], vocabSize: Int): DataFrame = {
+    val sc = textRDD.sparkContext
     val sqlContext = SQLContext.getOrCreate(sc)
 
     import sqlContext.implicits._
@@ -139,11 +137,10 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
   /**
     * LDA模型训练函数
     *
-    * @param sc  SparkContext
     * @param rdd 输入数据
     * @return (LDAModel, 词汇表)
     */
-  def train(sc: SparkContext, rdd: RDD[(Long, String)]): (LDAModel, RDD[String], RDD[(Long, Vector)], DataFrame) = {
+  def train(rdd: RDD[(Long, String)]): (LDAModel, RDD[String], RDD[(Long, Vector)], DataFrame) = {
     val k = config.k
     val maxIterations = config.maxIterations
     val vocabSize = config.vocabSize
@@ -153,9 +150,11 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     val checkpointDir = config.checkpointDir
     val checkpointInterval = config.checkpointInterval
 
+    val sc = rdd.sparkContext
+
     //将数据切分，转换为特征向量，生成词汇表，并计算数据总token数量
     val featureStart = System.nanoTime()
-    val tokens = splitLine(sc, rdd, vocabSize)
+    val tokens = splitLine(rdd, vocabSize)
     val (documents, vocabulary, actualNumTokens) = featureToVector(tokens, tokens, vocabSize)
     val vocabRDD = sc.parallelize(vocabulary)
 
@@ -219,17 +218,65 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
 
 
   /**
+    * 更新模型（使用已有模型的alpha和beta进行训练）
+    * @param rdd  输入数据
+    * @param ldaModel 原模型
+    * @param maxIterations  迭代次数
+    * @return
+    */
+  def update(rdd: RDD[(Long, String)], ldaModel: LDAModel, maxIterations: Int): (LDAModel, RDD[String], RDD[(Long, Vector)], DataFrame) = {
+    val k = ldaModel.k
+    val vocabSize = ldaModel.vocabSize
+    var algorithm = config.algorithm
+    val alpha = ldaModel.docConcentration
+    val beta = ldaModel.topicConcentration
+    val checkpointDir = config.checkpointDir
+    val checkpointInterval = config.checkpointInterval
+
+    val sc = rdd.sparkContext
+
+    ldaModel match {
+      case distLDAModel: DistributedLDAModel =>
+        algorithm = "em"
+      case localLDAModel: LocalLDAModel =>
+        algorithm = "online"
+      case _ =>
+    }
+
+    val tokens = splitLine(rdd, vocabSize)
+    val (documents, vocabulary, _) = featureToVector(tokens, tokens, vocabSize)
+    val vocabRDD = sc.parallelize(vocabulary)
+    val actualCorpusSize = documents.count()
+
+    val lda = new LDA()
+    val optimizer = selectOptimizer(algorithm, actualCorpusSize)
+    lda.setOptimizer(optimizer)
+      .setK(k)
+      .setMaxIterations(maxIterations)
+      .setDocConcentration(alpha)
+      .setTopicConcentration(beta)
+      .setCheckpointInterval(checkpointInterval)
+
+    if (checkpointDir.nonEmpty) {
+      sc.setCheckpointDir(checkpointDir)
+    }
+
+    val newModel = lda.run(documents)
+
+    (newModel, vocabRDD, documents, tokens)
+  }
+
+  /**
     * LDA新文档预测
     *
-    * @param sc          SparkContext
     * @param rdd         输入数据
     * @param ldaModel    模型
     * @param trainTokens 训练数据tokens
     * @return (doc-topics, topic-words)
     */
-  def predict(sc: SparkContext, rdd: RDD[(Long, String)], ldaModel: LDAModel, trainTokens: DataFrame, sorted: Boolean = false): (RDD[(Long, Array[(Double, Int)])], Array[Array[(String, Double)]]) = {
+  def predict(rdd: RDD[(Long, String)], ldaModel: LDAModel, trainTokens: DataFrame, sorted: Boolean = false): (RDD[(Long, Array[(Double, Int)])], Array[Array[(String, Double)]]) = {
     val vocabSize = ldaModel.vocabSize
-    val tokens = splitLine(sc, rdd, vocabSize)
+    val tokens = splitLine(rdd, vocabSize)
     val (documents, vocabRDD, _) = featureToVector(tokens, trainTokens, vocabSize)
     var docTopics: RDD[(Long, Array[(Double, Int)])] = null
 
@@ -311,7 +358,8 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     * @param ldaModel  LDAModel
     * @param tokens    词汇表：(index, word)
     */
-  def saveModel(sc: SparkContext, modelPath: String, ldaModel: LDAModel, tokens: DataFrame): Unit = {
+  def saveModel(modelPath: String, ldaModel: LDAModel, tokens: DataFrame): Unit = {
+    val sc = tokens.rdd.sparkContext
     ldaModel match {
       case distModel: DistributedLDAModel =>
         distModel.toLocal.save(sc, modelPath + File.separator + "model")

@@ -4,7 +4,6 @@ import java.io.{BufferedWriter, File, FileOutputStream, OutputStreamWriter}
 
 import algorithm.utils.LDAUtils
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -40,7 +39,7 @@ object LDAPredictDemo {
     val (ldaModel, trainTokens) = ldaUtils.loadModel(sc, modelPath)
 
     //预测文档，得到“文档-主题分布”和“主题-词”结果
-    val (docTopics, topicWords) = ldaUtils.predict(sc, textRDD, ldaModel, trainTokens, sorted = true)
+    val (docTopics, topicWords) = ldaUtils.predict(textRDD, ldaModel, trainTokens, sorted = true)
 
     println("文档-主题分布：")
     docTopics.collect().foreach(doc => {

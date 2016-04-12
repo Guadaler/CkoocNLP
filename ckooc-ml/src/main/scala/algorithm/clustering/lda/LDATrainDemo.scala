@@ -2,9 +2,9 @@ package algorithm.clustering.lda
 
 import algorithm.utils.LDAUtils
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.mllib.linalg.Vector
 
 
 object LDATrainDemo {
@@ -25,14 +25,15 @@ object LDATrainDemo {
 
 
     //切分数据
-    val textRDD = ldaUtils.getText(sc, inFile, 36).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
+    val textRDD = ldaUtils.getText(sc, inFile, 16).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
 
     //训练模型
-    val (ldaModel, vocabulary, documents, tokens) = ldaUtils.train(sc, textRDD)
+    val (ldaModel, vocabulary, documents, tokens) = ldaUtils.train(textRDD)
+
+    val ldaModelBc = sc.broadcast(ldaModel)
 
     //计算“文档-主题分布”
     val docTopics: RDD[(Long, Vector)] = ldaUtils.getDocTopics(ldaModel, documents)
-
     println("文档-主题分布：")
     docTopics.collect().foreach(doc => {
       println(doc._1 + ": " + doc._2)
@@ -50,7 +51,7 @@ object LDATrainDemo {
     })
 
     //保存模型和训练结果tokens
-    ldaUtils.saveModel(sc, outFile, ldaModel, tokens)
+    ldaUtils.saveModel(outFile, ldaModelBc.value, tokens)
 
     sc.stop()
   }
