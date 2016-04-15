@@ -25,7 +25,7 @@ object LDATrainDemo {
 
 
     //切分数据
-    val textRDD = ldaUtils.getText(sc, inFile, 16).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
+    val textRDD = ldaUtils.getText(sc, inFile, 32).filter(_.nonEmpty).map(_.split("\\|")).map(line => (line(0).toLong, line(1)))
 
     //训练模型
     val (ldaModel, vocabulary, documents, tokens) = ldaUtils.train(textRDD)
@@ -33,14 +33,14 @@ object LDATrainDemo {
     val ldaModelBc = sc.broadcast(ldaModel)
 
     //计算“文档-主题分布”
-    val docTopics: RDD[(Long, Vector)] = ldaUtils.getDocTopics(ldaModel, documents)
+    val docTopics: RDD[(Long, Vector)] = ldaUtils.getDocTopics(ldaModelBc.value, documents)
     println("文档-主题分布：")
     docTopics.collect().foreach(doc => {
       println(doc._1 + ": " + doc._2)
     })
 
     //计算“主题-词”
-    val topicWords: Array[Array[(String, Double)]] = ldaUtils.getTopicWords(ldaModel, vocabulary.collect())
+    val topicWords: Array[Array[(String, Double)]] = ldaUtils.getTopicWords(ldaModelBc.value, vocabulary.collect())
     println("主题-词：")
     topicWords.zipWithIndex.foreach(topic => {
       println("Topic: " + topic._2)
@@ -52,6 +52,8 @@ object LDATrainDemo {
 
     //保存模型和训练结果tokens
     ldaUtils.saveModel(outFile, ldaModelBc.value, tokens)
+
+    ldaModelBc.unpersist()
 
     sc.stop()
   }

@@ -85,6 +85,8 @@ object LDASimiDocDemo {
       (doc._1, distBuffer.toArray.sortWith(_._2 > _._2))
     })
 
+    dtBc.unpersist()
+
     saveReasult(dists, outFile)
 
     sc.stop()
