@@ -1,4 +1,4 @@
-package algorithm.utils
+package algorithm.clustering.lda
 
 import java.io.File
 import java.util.Properties
@@ -156,6 +156,7 @@ class LDAUtils(config: LDAConfig) extends Logging with Serializable {
     val featureStart = System.nanoTime()
     val tokens = splitLine(rdd, vocabSize)
     val (documents, vocabulary, actualNumTokens) = featureToVector(tokens, tokens, vocabSize)
+
     val vocabRDD = sc.parallelize(vocabulary)
 
     val actualCorpusSize = documents.count()

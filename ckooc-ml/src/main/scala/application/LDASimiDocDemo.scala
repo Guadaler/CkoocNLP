@@ -2,7 +2,8 @@ package application
 
 import java.io.{BufferedWriter, File, FileOutputStream, OutputStreamWriter}
 
-import algorithm.utils.{DistanceUtils, LDAUtils}
+import algorithm.clustering.lda.LDAUtils
+import algorithm.utils.DistanceUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}

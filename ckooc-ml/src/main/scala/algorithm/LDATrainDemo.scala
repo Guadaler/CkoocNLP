@@ -1,10 +1,10 @@
-package algorithm.clustering.lda
+package algorithm
 
-import algorithm.utils.LDAUtils
+import algorithm.clustering.lda.LDAUtils
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.mllib.linalg.Vector
 
 
 object LDATrainDemo {

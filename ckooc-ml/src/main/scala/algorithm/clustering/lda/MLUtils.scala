@@ -1,7 +1,7 @@
-package algorithm.clustering.lda.utils
+package algorithm.clustering.lda
 
 import org.apache.spark.ml.feature.{CountVectorizer, CountVectorizerModel, RegexTokenizer, StopWordsRemover}
-import org.apache.spark.mllib.linalg.{Vectors, SparseVector, Vector}
+import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row}
 
