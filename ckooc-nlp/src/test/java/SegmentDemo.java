@@ -1,3 +1,5 @@
+package java;
+
 import segment.*;
 
 import java.util.LinkedHashMap;
