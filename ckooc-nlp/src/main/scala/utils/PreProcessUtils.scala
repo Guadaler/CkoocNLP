@@ -36,6 +36,45 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
 
 
   /**
+    * 对sc的textFile方法的封装，可以按指定的最小块进行切分读取
+    * @param sc SparkContext
+    * @param inPath 输入路径
+    * @param minSize  最小块大小
+    * @return RDD[String]
+    */
+  def getText(sc: SparkContext, inPath: String, minSize: Int = 32): RDD[String] = {
+    val hadoopConf = sc.hadoopConfiguration
+    val fs = new Path(inPath).getFileSystem(hadoopConf)
+    val len = fs.getContentSummary(new Path(inPath)).getLength / (1024 * 1024)    //以MB为单位的数据大小
+    val minPart = (len / minSize).toInt   //按minSize的分块数
+
+    sc.textFile(inPath, minPart)
+  }
+
+
+  /**
+    * 抽取指定字段的内容
+    *
+    * @param line 输入文本
+    * @param sep  切分符
+    * @param fieldsArray 要提取的字段，从0开始
+    * @return 提取的字段数组
+    */
+  def contentExtract(line: String, cols: Int, sep: String, fieldsArray: Array[Int]): Array[String] = {
+    val tokens = line.split(sep)
+    val content = new Array[String](fieldsArray.length)
+    if (tokens.length == cols) {
+      if (tokens(0).length < 9) {
+        for (i <- fieldsArray.indices) {
+          content(i) = tokens(fieldsArray(i))
+        }
+      }
+    }
+    content
+  }
+
+
+  /**
     * 全角转半角
     *
     * @param line 输入数据
@@ -200,7 +239,7 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
 
 
   /**
-    * 文本中出现明文的\r\n等转以符号
+    * 文本中出现明文的\r\n等转义符号
     *
     * @param content  一行文本
     * @return
@@ -272,23 +311,6 @@ class PreProcessUtils (config: PreProcessConfig) extends Logging with Serializab
 
     resultRDD
   }
-
-
-  /**
-    * 对sc的textFile方法的封装，可以按指定的最小块进行切分读取
-    * @param sc SparkContext
-    * @param inPath 输入路径
-    * @param minSize  最小块大小
-    * @return RDD[String]
-    */
-  def getText(sc: SparkContext, inPath: String, minSize: Int): RDD[String] = {
-    val hadoopConf = sc.hadoopConfiguration
-    val fs = new Path(inPath).getFileSystem(hadoopConf)
-    val len = fs.getContentSummary(new Path(inPath)).getLength / (1024 * 1024)    //以MB为单位的数据大小
-    val minPart = (len / minSize).toInt   //按minSize的分块数
-
-    sc.textFile(inPath, minPart)
-  }
 }
 
 object PreProcessUtils extends Logging {
@@ -309,87 +331,5 @@ object PreProcessUtils extends Logging {
 
   def apply(conf: PreProcessConfig): PreProcessUtils = {
     new PreProcessUtils(conf)
-  }
-
-
-  /**
-    * 抽取指定字段的内容
-    *
-    * @param line 输入文本
-    * @param sep  切分符
-    * @param fieldNum 要提取的字段，从0开始
-    * @return 提取的字段数组
-    */
-  def contentExtract(line: String, cols: Int, sep: String, fieldNum: Int*): Array[String] = {
-    val tokens = line.split(sep)
-    val content = new Array[String](fieldNum.length)
-    if (tokens.length == cols) {
-      if (tokens(0).length < 9) {
-        for (i <- fieldNum.indices) {
-          content(i) = tokens(fieldNum(i))
-        }
-      }
-    }
-    content
-  }
-
-
-  def main(args: Array[String]) {
-    //设置log等级为WARN
-    Logger.getRootLogger.setLevel(Level.WARN)
-
-    val conf = new SparkConf().setAppName("DataPreProcess").setMaster("local")
-    val sc = new SparkContext(conf)
-
-    val args = Array("data/sample_data2.txt", "data/preprocess_result.txt", "zhihu")
-//    val args = Array("data/baike/baike_sample_data.txt", "data/preprocess_baike_result.txt", "baike")
-
-    val preUtils = PreProcessUtils("config/preprocess.properties")
-
-    val inFile = args(0)
-    val outFile = args(1)
-    val dataType = args(2)
-
-    val sep = "\u00EF"
-
-    var splitedRDD: RDD[(Long, scala.Seq[String])] = null
-
-    if (dataType == "zhihu") {
-      //提取指定字段的数据(id, title, content)
-      val extractRDD = preUtils.getText(sc, inFile, 48).map(line => contentExtract(line, 14, sep, 0, 6, 13)).filter(line => line(2) != null)
-
-      //合并字段内容(title+content)
-      val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(1) + tokens(2)))
-
-      //分词等预处理，得到分词后的结果
-      splitedRDD = preUtils.runPreProcess(sc, textRDD)
-    } else if (dataType == "baike") {
-      //提取指定字段的数据(id, title, content)
-      val extractRDD = preUtils.getText(sc, inFile, 48).map(line => contentExtract(line, 6, sep, 0, 4, 5)).filter(line => line(2) != null)
-
-      //合并字段内容(title+content)
-      val textRDD = extractRDD.map(tokens => (tokens(0).toLong, tokens(1) + tokens(2)))
-
-      //分词等预处理，得到分词后的结果
-      splitedRDD = preUtils.runPreProcess(sc, textRDD)
-    } else {
-      println("数据类型不支持！")
-      sys.exit()
-    }
-
-
-    //--本地测试使用：写入本地文件
-    val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" ")).collect()
-    val bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)))
-    for (line <- result) {
-      bw.write(line + "\n")
-    }
-    bw.close()
-
-    //--集群使用：写入HDFS指定路径
-    /*val result = splitedRDD.map(words => words._1 + "|" + words._2.mkString(" "))
-    result.saveAsTextFile(outFile)*/
-
-    sc.stop()
   }
 }
